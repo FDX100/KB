@@ -335,6 +335,7 @@ const STALL_WARN_MS = 5000;
 const LAYER_BUDGET = 8;          // cluster-render's limit per client connection (CompositorLimits.per_client; confirmed on the car Nov 5 2026)
 const MAX_CONN = 4;              // connections a layout may ask for ("conn"): 32 layers service-wide / 8 per connection
 const PIXEL_BYTES = 16 * 1024 * 1024;   // cluster-render's pixel memory for every app's images together (CompositorLimits.pixel_bytes)
+const MAP_RECT = [416, 120, 1088, 480];   // where Waze on Cluster draws the map on the panel (waze-on-cluster README, Map size)
 const GEAR_WIN = { x: 1380, y: 660, w: 80, h: 60 };   // BMW's gear letter at the panel's bottom right: no sheet reaches over it
 const PACK_JOIN_PX = 40000;      // free image widgets are joined into one sheet while the extra pixels stay under this (a layer costs the display about as much)
 const PACK_FORCE_PX = 250000;     // ... but not for more extra pixels than this, unless the layers would not fit at all
@@ -2922,8 +2923,17 @@ class HudApp {
     /** A widget's map hole in layer px, inset by "holeInset" (6) a side, while "holeWhen" is on; else no hole. */
     _hole(w) {
         const on = w.holeWhen === true || (w.holeWhen && this.setting(w.holeWhen) === true);   // true: always cut
-        const h = w.hole && on ? w.hole : null;
+        let h = w.hole && on ? w.hole : null;
         if (!h) return [0, 0, 0, 0];
+        // Waze on Cluster draws its map in the stock map's rect only (1088x480 at 416,120 on the panel), and what lies outside
+        // it under a hole is BMW's own cluster, not black: so the window is cut to that rect (and not at all when too little
+        // of it is left to show a map)
+        if (this.target === 'panel' && w.holeClamp !== false) {
+            const x0 = Math.max(h[0], MAP_RECT[0]), y0 = Math.max(h[1], MAP_RECT[1]);
+            const x1 = Math.min(h[0] + h[2], MAP_RECT[0] + MAP_RECT[2]), y1 = Math.min(h[1] + h[3], MAP_RECT[1] + MAP_RECT[3]);
+            h = x1 - x0 >= 160 && y1 - y0 >= 120 ? [x0, y0, x1 - x0, y1 - y0] : null;
+            if (!h) return [0, 0, 0, 0];
+        }
         const inset = isNum(w.holeInset) ? w.holeInset : 6;
         return [h[0] + inset - w.x, h[1] + inset - w.y, Math.max(0, h[2] - 2 * inset), Math.max(0, h[3] - 2 * inset)];
     }
