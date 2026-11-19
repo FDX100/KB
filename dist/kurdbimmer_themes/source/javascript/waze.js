@@ -31,6 +31,7 @@ const CONTROL_PATH = '/dev/shm/waze-on-cluster/ctl.sock';
 const POLL_MS = 1000;
 const STALE_MS = 10000;          // a status file older than this: the service isn't running
 const RETRY_MS = 5000;           // between two sends (busy, error, or waiting for the status to show the switch)
+const FALLBACK_MS = 15000;       // wanted this long and the map is still on "map": show it from under the theme
 const LINGER_MS = 800;           // how long we stay connected after the command (its answer, then close)
 
 class Waze {
@@ -83,6 +84,7 @@ class Waze {
         if (s.state === 'unsupported') return { text: 'Waze on Cluster: this car isn\'t supported', up: false, ok: false };
         if (s.state === 'off') return { text: 'Waze map is turned off in the Waze app', up: false, ok: false };
         if (!this.wanted) return { text: 'Off. Waze shows the map in BMW\'s own map view', up: false, ok: true };
+        if (this.under) return { text: 'Map showing under the theme (BMW\'s readouts over it)' + (this.problem === 'busy' ? ': close the Waze app page to move it in' : this.problem ? ' (' + this.problem + ')' : ''), up: true, ok: true };
         if (s.target !== 'panel') {
             if (this.problem === 'busy') return { text: 'Waze app is open, retrying', up: false, ok: false };
             if (this.problem) return { text: 'Can\'t reach Waze on Cluster (' + this.problem + ')', up: false, ok: false };
@@ -109,7 +111,14 @@ class Waze {
         this.st = s;
         if (s && s.target === 'map' && !this.wanted && this.moved) this._setMoved(false);   // it's back
         if (s && s.target === 'panel' && this.problem) this.problem = null;
-        const up = !!(this.wanted && s && s.target === 'panel' && s.state === 'showing');
+        // The map couldn't be moved into the theme (the Waze app holds the control socket, no answer, ...): it stays on
+        // "map", under BMW's gauges. The theme's window is cut all the same, and shows it there (with BMW's own readouts
+        // over it), rather than an empty hole. A map moved later (target panel) takes over by itself.
+        if (!this.wanted) this.wantedAt = 0;
+        else if (!this.wantedAt) this.wantedAt = Date.now();
+        this.under = !!(this.wanted && s && s.target === 'map' && s.state === 'showing' &&
+            (this.problem || Date.now() - this.wantedAt > FALLBACK_MS));
+        const up = !!(this.wanted && s && s.state === 'showing' && (s.target === 'panel' || this.under));
         const text = this.info().text;
         const changed = up !== this.up || text !== this.lastText;
         this.up = up;

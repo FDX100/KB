@@ -5,7 +5,7 @@
     "type": "OnlineApp",
     "name": "kurdbimmer_themes",
     "vendor": "custom",
-    "version": "0.20.0",
+    "version": "0.20.1",
     "defaultLanguage": "en_GB",
     "stringBundleUuid": "d86509d6-04bf-5ad1-96c8-b3c7edf286e0",
     "resourceBundleUuid": "edd75f43-0420-5551-a3dc-23b7c5847a22",

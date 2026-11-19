@@ -1,6 +1,6 @@
 {
   "name": "kurdbimmer_themes",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "Sixteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
   "main": "javascript/app.js",
   "private": false,
