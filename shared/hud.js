@@ -335,7 +335,13 @@ const STALL_WARN_MS = 5000;
 const LAYER_BUDGET = 8;          // cluster-render's limit per client connection (CompositorLimits.per_client; confirmed on the car Nov 5 2026)
 const MAX_CONN = 4;              // connections a layout may ask for ("conn"): 32 layers service-wide / 8 per connection
 const PIXEL_BYTES = 16 * 1024 * 1024;   // cluster-render's pixel memory for every app's images together (CompositorLimits.pixel_bytes)
+const GEAR_WIN = { x: 1380, y: 660, w: 80, h: 60 };   // BMW's gear letter at the panel's bottom right: no sheet reaches over it
+const PACK_JOIN_PX = 40000;      // free image widgets are joined into one sheet while the extra pixels stay under this (a layer costs the display about as much)
+const PACK_FORCE_PX = 250000;     // ... but not for more extra pixels than this, unless the layers would not fit at all
+const PACK_SOFT_LAYERS = 24;     // and while the layout has more layers than this, whatever the extra pixels
+const DEFAULT_WASTE = 3;         // a layout without "packWaste": a sheet's box stays within this many times its members' area
 const SHEET_AREA_FRAC = 4;       // the first sheet size limit: 1/4 of the target area (see the header)
+const TICK_RATES = { smooth: 50, balanced: 80, light: 125 };   // updateRate: 20, 12 or 8 a second
 const TICK_MS = 50;              // 20 Hz: shift bar and gauges
 const TEXT_MS = 200;             // text re-draws at most 5 times a second (what BMW's own readouts do)
 const TARGET_SIZES = { hud: [800, 480], panel: [1920, 720] };
@@ -949,7 +955,12 @@ class HudApp {
         this.log.info('connecting to cluster-render at ' + this.socketPath);
         this.started = true;
         this.clients.forEach((c) => c.connect());
-        this.tickTimer = setInterval(() => this._guard('tick', () => this._tick()), TICK_MS);
+        // the update rate is a setting ("updateRate"): fewer redraws on the cluster's GPU, at the cost of a steppier needle
+        const tickLoop = () => {
+            this._guard('tick', () => this._tick());
+            this.tickTimer = setTimeout(tickLoop, TICK_RATES[this.setting('updateRate')] || TICK_MS);
+        };
+        this.tickTimer = setTimeout(tickLoop, TICK_MS);
         // Auto theme: check for sunrise / sunset once a minute; the status line too
         this.themeTimer = setInterval(() => this._guard('theme check', () => {
             if (this._themeName() !== this.themeName || this._nightDim() !== this.nightOn || this._hudHoliday() !== (this.hudHoliday || null) ||
@@ -1032,7 +1043,7 @@ class HudApp {
     }
 
     stop() {
-        clearInterval(this.tickTimer);
+        clearTimeout(this.tickTimer);
         clearInterval(this.themeTimer);
         clearInterval(this.statusTimer);
         clearInterval(this.dmeTimer);
@@ -1961,7 +1972,7 @@ class HudApp {
         // a layout's "packWaste" (the Nov 7 2026 themes): a widget joins a sheet only while the sheet's box stays within
         // that many times its members' own area, so far-apart readouts don't share one mostly empty sheet (pixel
         // memory); relaxed along with the size limit when the layer budget needs it. Without it: the size limit only.
-        let waste = isNum(layout.packWaste) ? layout.packWaste : Infinity;
+        let waste = isNum(layout.packWaste) ? layout.packWaste : DEFAULT_WASTE;
         // the strip row goes on the connection where it costs the fewest pixels without going over the layer budget
         const row = shown.filter((w) => w.stripRow);
         if (row.length) {
@@ -1999,15 +2010,28 @@ class HudApp {
                 gs.reduce((a, g) => a + g.g.bulbs.length, 0) + ' bulbs (' + gs.map((g) => g.w + 'x' + g.h + ' at ' + g.x + ',' + g.y + ' scale ' + g.g.s).join(', ') + ')' +
                 ', connection ' + ((gs[0].conn || 0) + 1) : 'no room'));
         }
-        let maxPx = Math.floor(area / SHEET_AREA_FRAC), plan = this._plan(shown, maxPx, waste);
-        while (over(plan) && (maxPx !== Infinity || waste !== Infinity)) {
-            maxPx = maxPx * 2 >= area ? Infinity : maxPx * 2;
-            waste = waste * 2 > 64 ? Infinity : waste * 2;
-            plan = this._plan(shown, maxPx, waste);
+        // sheets start small and tight; only a connection over the layer budget is relaxed (its limits doubled), the others keep theirs
+        const px0 = Math.floor(area / SHEET_AREA_FRAC);
+        const mx = { conns: [], def: px0 }, wx = { conns: [], def: waste };
+        let plan = this._plan(shown, mx, wx);
+        for (let guard = 0; guard < 16; guard++) {
+            const counts = this._connCounts(plan), bad = [];
+            counts.forEach((k, ci) => {
+                const m = isNum(mx.conns[ci]) ? mx.conns[ci] : mx.def, w2 = isNum(wx.conns[ci]) ? wx.conns[ci] : wx.def;
+                if (k > LAYER_BUDGET && (m !== Infinity || w2 !== Infinity)) bad.push([ci, m, w2]);
+            });
+            if (!bad.length) break;
+            bad.forEach(([ci, m, w2]) => {
+                mx.conns[ci] = m * 2 >= area ? Infinity : m * 2;
+                wx.conns[ci] = w2 * 2 > 64 ? Infinity : w2 * 2;
+            });
+            plan = this._plan(shown, mx, wx);
         }
+        const maxPx = mx.conns.some((v) => v === Infinity) ? Infinity : Math.max(px0, ...mx.conns.filter(isNum));
         let effects = 0, own = 0, sheets = 0, bytes = 0, px = 0;
+        const dims = [];
         plan.forEach((e) => {
-            if (e.kind === 'sheet') { sheets++; bytes += e.w * e.h * 4; px += e.w * e.h * 8; this._guard('sheet ' + e.members[0].id, () => this._createSheet(e)); }
+            if (e.kind === 'sheet') { sheets++; dims.push(e.w + 'x' + e.h); bytes += e.w * e.h * 4; px += e.w * e.h * 8; this._guard('sheet ' + e.members[0].id, () => this._createSheet(e)); }
             else {
                 if (IMAGE_TYPES[e.w.type]) { own++; px += e.w.w * e.w.h * 8; } else effects++;
                 this._guard('widget ' + e.w.id, () => this._create(e.w, null));
@@ -2019,7 +2043,7 @@ class HudApp {
         this.pixelBytes = px;
         const n = this._layerRefs().length, counts = this._connCounts(plan);
         this.log.info('layout "' + layout.name + '": ' + shown.length + ' widgets, ' + this._layerCount(n) + ' (' + effects + ' effects, ' +
-            sheets + ' image sheets' + (own ? ', ' + own + ' own image layers' : '') + ')' +
+            sheets + ' image sheets' + (dims.length ? ' [' + dims.join(' ') + ']' : '') + (own ? ', ' + own + ' own image layers' : '') + ')' +
             (counts.length > 1 ? ' on ' + counts.length + ' connections (' + counts.join(' + ') + ')' : '') + ', sheet limit ' +
             (maxPx === Infinity ? 'unlimited' : maxPx + ' px') + ', whole-sheet writes ' + bytes + ' bytes, pixel memory ' + mib(px) + ' of 16 MiB' +
             (atlasBytes ? ' (' + this.atlases.size + ' glyph atlas' + (this.atlases.size > 1 ? 'es' : '') + ' ' + mib(atlasBytes) + ')' : ''));
@@ -2038,8 +2062,115 @@ class HudApp {
      * file order says) and whose union box with it stays within maxPx pixels, else a new sheet is opened
      * at the end.
      */
-    _plan(widgets, maxPx, waste) {
-        if (!isNum(waste)) waste = Infinity;
+    _plan(widgets, maxPx0, waste0) {
+        const free = this._freeImages(widgets);
+        if (!free.size) return this._planSeq(widgets, maxPx0, waste0);
+        const plan = this._planSeq(widgets.filter((w) => !free.has(w)), maxPx0, waste0);
+        const spare = [];
+        for (let ci = 0; ci < MAX_CONN; ci++) spare[ci] = LAYER_BUDGET;
+        plan.forEach((e) => { spare[e.conn]--; });
+        const room = spare.reduce((a, k) => a + Math.max(0, k), 0);
+        if (room < 1) return this._planSeq(widgets, maxPx0, waste0);
+        this._packFree(plan, widgets.filter((w) => free.has(w)), free, spare, room);
+        return plan;
+    }
+
+    /**
+     * The image widgets that can be packed freely (a Map widget -> level), and the rest: not a strip row, "own", nav or
+     * garland, and overlapping no other layer of their (class, z) but image widgets of the same kind. Within a (class, z)
+     * an image widget's level is one above the deepest earlier image widget its rect overlaps (0 when none): two widgets of
+     * one level never overlap, so any of them can share a sheet, and sheets are made level by level, so what overlaps stays
+     * under or over as the file says. Layers on every connection are ordered by z alike, so the connection doesn't matter.
+     */
+    _freeImages(widgets) {
+        const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        const packable = (w) => IMAGE_TYPES[w.type] && w.own !== true && w.type !== 'nav' && w.type !== 'garland' && !w.stripRow;
+        const groups = new Map();
+        widgets.forEach((w) => {
+            const k = (w.class || 'content') + '|' + (w.z || 0);
+            if (!groups.has(k)) groups.set(k, []);
+            groups.get(k).push(w);
+        });
+        const level = new Map();
+        groups.forEach((list) => {
+            list.forEach((w, i) => {
+                if (!packable(w)) return;
+                // overlapping a layer that is no packable image widget (an effect, a strip row ...): not packed
+                if (list.some((o) => o !== w && !packable(o) && hit(o, w))) return;
+                let lv = 0;
+                for (let j = 0; j < i; j++) {
+                    const o = list[j];
+                    if (packable(o) && level.has(o) && hit(o, w)) lv = Math.max(lv, level.get(o) + 1);
+                }
+                level.set(w, lv);
+            });
+            // a widget overlapping one that isn't packed is not packed either (until nothing changes)
+            for (let again = true; again;) {
+                again = false;
+                list.forEach((w) => {
+                    if (level.has(w) && list.some((o) => o !== w && !level.has(o) && hit(o, w))) { level.delete(w); again = true; }
+                });
+            }
+        });
+        return level;
+    }
+
+    /**
+     * Packs the free image widgets (see _freeImages) into as few pixels as the spare layer slots allow: every widget
+     * starts as a sheet of its own, and the pair whose joint box costs the least extra area is joined, until the
+     * sheets fit the spare slots and no join costs less than PACK_JOIN_PX. A box never reaches over BMW's gear window
+     * (the panel's bottom strip). Each sheet then goes on the connection with the most room left.
+     */
+    _packFree(plan, widgets, level, spare, room) {
+        const gw = this.target === 'panel' ? GEAR_WIN : null;
+        const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        const groups = new Map();
+        widgets.forEach((w) => {
+            const k = (w.class || 'content') + '|' + (w.z || 0) + '|' + level.get(w);
+            if (!groups.has(k)) groups.set(k, { klass: w.class || 'content', z: w.z || 0, level: level.get(w), list: [] });
+            groups.get(k).list.push(w);
+        });
+        const sheets = [];
+        groups.forEach((g) => {
+            let cl = g.list.map((w) => ({ x: w.x, y: w.y, w: w.w, h: w.h, members: [w] }));
+            for (;;) {
+                let best = null;
+                for (let i = 0; i < cl.length; i++) for (let j = i + 1; j < cl.length; j++) {
+                    const a = cl[i], b = cl[j], x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+                    const u = { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+                    if (gw && hit(u, gw)) continue;
+                    const extra = u.w * u.h - a.w * a.h - b.w * b.h;
+                    if (!best || extra < best.extra) best = { i, j, u, extra };
+                }
+                if (!best) break;
+                const total = plan.length + sheets.length + cl.length + (groups.size - 1);   // layers if nothing more is joined (a lower bound: later groups count one each)
+                if (best.extra > PACK_JOIN_PX && (total <= PACK_SOFT_LAYERS || best.extra > PACK_FORCE_PX) && total - 1 <= plan.length + room) break;
+                const a = cl[best.i], b = cl[best.j];
+                const m = Object.assign({}, best.u, { members: a.members.concat(b.members).sort((p, q) => widgets.indexOf(p) - widgets.indexOf(q)) });
+                cl = cl.filter((_, k) => k !== best.i && k !== best.j).concat([m]);
+            }
+            cl.forEach((c) => sheets.push(Object.assign(c, { kind: 'sheet', klass: g.klass, z: g.z, level: g.level })));
+        });
+        // the biggest sheets first onto the connections with the most room; made in level order (a higher level is on top)
+        const conns = new Map();
+        sheets.slice().sort((a, b) => b.w * b.h - a.w * a.h).forEach((sh) => {
+            let ci = 0;
+            for (let k = 1; k < MAX_CONN; k++) if (spare[k] > spare[ci]) ci = k;
+            spare[ci]--;
+            conns.set(sh, ci);
+        });
+        sheets.forEach((sh, i) => { sh.seq = i; });
+        sheets.sort((a, b) => a.level - b.level || a.seq - b.seq);       // (Node 8's sort isn't stable)
+        sheets.forEach((sh) => {
+            const ci = conns.get(sh);
+            plan.push(Object.assign(sh, { conn: ci, ref: 0, c: null, ci, buf: null }));
+        });
+    }
+
+    _planSeq(widgets, maxPx0, waste0) {
+        // maxPx / waste: one number for every connection, or { conns: [per connection], def } (a connection that is over the
+        // layer budget is relaxed alone, so the others keep their small sheets)
+        const lim = (v, conn) => (v && typeof v === 'object' ? (isNum(v.conns[conn]) ? v.conns[conn] : v.def) : v);
         const plan = [];
         const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
         const union = (s, w) => {
@@ -2049,6 +2180,9 @@ class HudApp {
         widgets.forEach((w) => {
             const klass = w.class || 'content', z = w.z || 0, conn = this._connOf(w);
             if (!IMAGE_TYPES[w.type] || w.own === true || w.type === 'nav') { plan.push({ kind: 'layer', w, klass, z, conn }); return; }
+            const maxPx = lim(maxPx0, conn);
+            let waste = lim(waste0, conn);
+            if (!isNum(waste)) waste = Infinity;
             let after = -1;
             plan.forEach((e, i) => {
                 if (e.klass !== klass || e.z !== z || e.conn !== conn) return;

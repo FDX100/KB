@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Sixteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -459,6 +459,26 @@
         [
           "24h",
           "24-hour"
+        ]
+      ]
+    },
+    {
+      "key": "updateRate",
+      "label": "Cluster update rate",
+      "type": "choice",
+      "default": "balanced",
+      "options": [
+        [
+          "smooth",
+          "Smooth (20 a second)"
+        ],
+        [
+          "balanced",
+          "Balanced (12 a second)"
+        ],
+        [
+          "light",
+          "Light (8 a second), easiest on the cluster"
         ]
       ]
     },

@@ -303,7 +303,8 @@ class ClusterRender extends EventEmitter {
     }
 
     _uniformMsg(ref, name, v) {
-        return { op: 'uniform', ref: ref, name: name, v: v.join(' ') };
+        // 4 decimals are far below a pixel; shorter messages, and an unchanged value is then spotted (uniform())
+        return { op: 'uniform', ref: ref, name: name, v: v.map((x) => (typeof x === 'number' && x % 1 !== 0 ? Math.round(x * 10000) / 10000 : x)).join(' ') };
     }
 
     _add(kind, opts) {
@@ -370,7 +371,9 @@ class ClusterRender extends EventEmitter {
             m.type = o.type;
         } else if ((l.kind !== 'effect' && l.kind !== 'mesh') || values.length > 4) return;
         if (o.part) m.part = o.part;
-        l.uniforms[(o.part || 0) + ':' + name] = m;
+        const key = (o.part || 0) + ':' + name, was = l.uniforms[key];
+        if (was && was.v === m.v && was.type === m.type) return;        // unchanged: nothing to send, nothing for the display to redraw
+        l.uniforms[key] = m;
         this._send(m);
     }
 
