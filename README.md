@@ -1,0 +1,108 @@
+<p align="center"><img src="apps/kurdbimmer_themes/icon.png" width="120" alt="KurdBimmer icon"></p>
+
+<h1 align="center">KurdBimmer Themes</h1>
+
+<p align="center">
+Sixteen full-screen instrument cluster themes for BMW iDrive 7 (MGU), with a Kurdish (Sorani) interface.<br>
+Made by <a href="https://github.com/FDX100">FDX100</a>.
+</p>
+
+> **Status: not yet tried on a real car.** Every theme was drawn and checked in the bench simulator in this repository. Layer and GPU limits on the head unit are unverified. Install at your own risk, as with any non-BMW app on a head unit.
+
+## What you get
+
+- **16 cluster themes**, each drawn for the full 1920x720 cluster (see below).
+- **Waze on the cluster:** with "Show Waze map inside the theme" on, themes that have a map window open it in the middle. Without Waze the middle stays as the theme drew it.
+- **Drive-mode switching:** pick a different theme for Comfort, Sport and Eco Pro.
+- **Readouts, badge, G-meter, alerts, shift lights and units** to set from the app's page on the center screen.
+- **A Kurdish (Sorani) interface:** About tab, Language. Right-to-left, with joined Arabic letters and Arabic-Indic digits. The cluster itself stays in English.
+- **Kurdish-flag look** for the app's pages (green, gold, red), with a picture of every theme.
+
+## Themes
+
+<table>
+<tr><td align="center" width="50%"><img src="docs/themes/apex.png" width="440" alt="Apex"><br><b>Apex</b><br>Twin dials, a huge gear and a shift strip between them.</td><td align="center" width="50%"><img src="docs/themes/alpina.png" width="440" alt="Alpina"><br><b>Alpina</b><br>Chevron scales with light blue hatched bands, blue glass panels, the ALPINA wordmark.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/concept.png" width="440" alt="Concept"><br><b>Concept</b><br>Curved glossy gauges with an amber swoosh; Waze oval in the middle.</td><td align="center" width="50%"><img src="docs/themes/live.png" width="440" alt="Live Cockpit"><br><b>Live Cockpit</b><br>Blue speed chevron, red rev chevron, fuel and oil bars.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/eco.png" width="440" alt="Eco"><br><b>Eco</b><br>Speed and power rings with a green efficiency window over a glowing floor.</td><td align="center" width="50%"><img src="docs/themes/classic.png" width="440" alt="Classic"><br><b>Classic</b><br>Analog dials with red-orange ticks, small fuel and temperature dials, a lit middle window.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/classic_map.png" width="440" alt="Classic Map"><br><b>Classic Map</b><br>Classic with smaller dials and a big window for the Waze map.</td><td align="center" width="50%"><img src="docs/themes/night.png" width="440" alt="Night Drive"><br><b>Night Drive</b><br>Very dark and quiet: slim bronze dials and a large clock.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/mdigital.png" width="440" alt="M Digital"><br><b>M Digital</b><br>Tall curved rev bands, big speed and gear, the M stripe.</td><td align="center" width="50%"><img src="docs/themes/bluedials.png" width="440" alt="Blue Dials"><br><b>Blue Dials</b><br>Vivid blue round dials with tapered red needles and a road floor.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/epower.png" width="440" alt="ePower"><br><b>ePower</b><br>Plug-in hybrid dials: speed, POWER % with a CHARGE sector, fuel and battery.</td><td align="center" width="50%"><img src="docs/themes/rain.png" width="440" alt="Digital Rain"><br><b>Digital Rain</b><br>Matrix-style falling glyphs behind seven-segment speed.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/neon.png" width="440" alt="Neon City"><br><b>Neon City</b><br>Cyberpunk skyline, neon frames, huge yellow speed.</td><td align="center" width="50%"><img src="docs/themes/glass.png" width="440" alt="Glass"><br><b>Glass</b><br>Two big glass-ring dials, the middle left clear for Waze.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/e46.png" width="440" alt="E46 M3"><br><b>E46 M3</b><br>White-faced analog cluster with chrome bezels and an orange LCD.</td><td align="center" width="50%"><img src="docs/themes/hybrid.png" width="440" alt="Hybrid"><br><b>Hybrid</b><br>One big speed with the battery charge line.</td></tr>
+</table>
+
+Pictures are bench screenshots of the cluster area, not photos from a car.
+
+## Install
+
+You need a BMW iDrive 7 head unit with the [MGU Store](https://github.com/robertnisipeanu/mgu-store) and the **cluster-render** app (from [robertnisipeanu/idrive-apps](https://github.com/robertnisipeanu/idrive-apps)). Every theme draws through cluster-render, so install it first.
+
+### From GitHub (online)
+
+1. In the MGU Store open **Settings, Add source** and enter `FDX100/KurdBimmer`.
+2. Install **KurdBimmer Themes**. The Store builds it on the car from this repository (`mgu-repo.json`).
+3. Open **KurdBimmer Themes** from the apps menu on the center screen and pick a theme on the Themes tab.
+
+### From a USB stick (offline)
+
+On a computer with Node 18 or newer, using the Store's installer:
+
+```sh
+git clone https://github.com/robertnisipeanu/mgu-store
+git clone https://github.com/FDX100/KurdBimmer
+cd mgu-store
+node deploy/mgu-install.js usb-repo <stick> ../KurdBimmer
+# optional: put cluster-render on the same stick
+node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
+```
+
+`<stick>` is the stick's mount point (`E:\` on Windows, `/run/media/<you>/USB` on Linux). In the car open **MGU Store, USB** and install cluster-render, then KurdBimmer Themes. Copying files onto the stick by hand does not work; the stick must be written by `usb-repo`.
+
+## Using it
+
+- **Look:** choose the theme, and optionally one per drive mode (Comfort, Sport, Eco Pro).
+- **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
+- **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
+- **About:** credits and the **Language** switch (English / Kurdish Sorani).
+
+## Try it without a car
+
+```sh
+node bench/server.js kurdbimmer_themes     # then open http://localhost:8078
+```
+
+The bench draws the cluster and the center-screen page with simulated car data. Pick a theme on the Themes tab. Saving a layout or `shared/` file rebuilds and reloads it. See `bench/README.md`.
+
+## Make your own theme
+
+1. Write `tools/gen_<name>.py` (copy `tools/gen_apex.py`) that writes `apps/kurdbimmer_themes/hud/layouts/<name>.json`. The widget types are listed at the top of `shared/hud.js`.
+2. Add a palette to `shared/hud_themes.js` (copy the `apex` entry).
+3. Add `["<name>", "<Title>"]` to the four theme lists in `apps/kurdbimmer_themes/app.json` (`hudLayout`, `inComfort`, `inSport`, `inEco`), and a caption to `tags` in `apps/kurdbimmer_themes/main.js`.
+4. Check it in the bench. The cluster draws at most 8 layers per connection; give widgets `"conn": 2` or `3` when a layout needs more.
+5. Make its picture: `python3 tools/previews_kb.py kurdbimmer_themes 8078`.
+
+More in `docs/DEVELOPING.md`.
+
+## Kurdish (Sorani)
+
+- `shared/ckb.js` shapes Arabic-script letters into their joined forms, puts a line in right-to-left order (Latin words and numbers keep their direction) and turns digits into Arabic-Indic ones.
+- The letter forms come from Noto Sans Arabic (SIL OFL): `python3 tools/ckb/bake_arabic.py` bakes them into `kit/runtime/fonts/arabic*.json` and `shared/ckb_table.js`.
+- Translations live in `tools/ckb/catalog.json` (English string to Sorani, `{n}` for a number). `python3 tools/ckb/make_catalog.py` writes `shared/ckb_catalog.js` and lists strings with no entry; those stay English.
+- **The translation has not been reviewed by a native speaker.** Corrections to `catalog.json` are welcome.
+
+## Build
+
+```sh
+python3 kit/tools/build.py kurdbimmer_themes     # writes dist/kurdbimmer_themes@<version>.mgu and .tgz
+```
+
+The build needs the BMW `oap-sdk`, which the Store makes on the car. In this repository `oap-sdk/` is a stub for the bench, so those files are for testing only; do not copy them to a car.
+
+## Credits and licence
+
+- Made by **FDX100**, https://github.com/FDX100.
+- Built on [bimmer-lab/apps](https://github.com/bimmer-lab/apps) (Cluster Themes, MIT) and cauliflowermossgrape's [MGU App Kit](https://github.com/cauliflowermossgrape/idrive7-apps) (MIT). Every original bimmer-lab theme has been removed; only the themes made here remain.
+- Cluster drawing by [cluster-render](https://github.com/robertnisipeanu/idrive-apps) and the [MGU Store](https://github.com/robertnisipeanu/mgu-store) by robertnisipeanu.
+- Fonts: Barlow, Orbitron, Outfit and Noto Sans Arabic, all SIL OFL. See `apps/kurdbimmer_themes/NOTICE`.
+- Some themes were drawn after photos of real clusters. They are original drawings, not BMW or Alpina artwork. BMW, M and Alpina are trademarks of their owners; this project is not affiliated with them.
+- MIT licence, see `LICENSE`.
