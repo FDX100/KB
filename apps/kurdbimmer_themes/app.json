@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -36,7 +36,9 @@
     "shift_cue.js",
     "smart_temps.js",
     "hud_holiday.js",
-    "garland.js"
+    "garland.js",
+    "png.js",
+    "logos.js"
   ],
   "signals": {
     "de.bmw.infotainment.vehicle.CDS": {
@@ -1249,6 +1251,22 @@
       "label": "BMW lettering on the badge",
       "type": "bool",
       "default": true
+    },
+    {
+      "key": "badgeStyle",
+      "label": "Badge style",
+      "type": "choice",
+      "default": "logo",
+      "options": [
+        [
+          "logo",
+          "Logo (your PNG files, else text)"
+        ],
+        [
+          "text",
+          "Text only"
+        ]
+      ]
     },
     {
       "key": "demo",

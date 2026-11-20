@@ -453,6 +453,19 @@
       "conn": 1
     },
     {
+      "id": "badgemark",
+      "type": "badgemark",
+      "z": 5,
+      "x": 800,
+      "y": 540,
+      "w": 320,
+      "h": 70,
+      "font": "badge",
+      "color": "dim",
+      "align": "center",
+      "toggle": "!mapUp"
+    },
+    {
       "id": "strip_cover_l",
       "type": "fill",
       "class": "content",

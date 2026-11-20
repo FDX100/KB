@@ -6,7 +6,7 @@ import json, os
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 OUT = os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'layouts', 'apex.json')
-MIN = os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'layouts', 'minimal.json')
+MIN = os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'layouts', 'hybrid.json')     # its bottom row (strip_*) is the shared one
 
 CY = 318                     # dials' centre y (content area is 1920x660)
 DIAL = 580                   # outer dial layer size
@@ -68,4 +68,5 @@ L = {'schemaVersion': 2, 'name': 'Apex', 'packWaste': 3, 'theme': 'apex',
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     json.dump(L, f, indent=2, ensure_ascii=False)
     f.write('\n')
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badge_spot; badge_spot.apply(OUT)
 print('apex.json:', len(W), 'widgets')

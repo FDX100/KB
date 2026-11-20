@@ -156,14 +156,13 @@
       "align": "left"
     },
     {
-      "id": "badge",
-      "type": "text",
+      "id": "badgemark",
+      "type": "badgemark",
       "z": 5,
       "x": 810,
-      "y": 95,
+      "y": 56,
       "w": 300,
-      "h": 34,
-      "text": "{{badge}}",
+      "h": 60,
       "font": "badge",
       "color": "dim",
       "align": "center"

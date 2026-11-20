@@ -307,6 +307,8 @@ const Car = require('./kit/car');
 const Waze = require('./waze');
 const Screen = require('./screen');
 const badges = require('./badges');
+const { Logos } = require('./logos');
+const { fit: pngFit } = require('./png');
 const Runs = require('./runs');
 const tz = require('./tz');
 const holidays = require('./holidays');
@@ -327,7 +329,7 @@ const CLAIM_MS = 1000;
 
 const BOOST_SCALE = { factor: 0.01, offset: 0, invalid: 255 }; // see header comment
 // the widget types drawn as pixels (image layers, packed into sheets unless "own": true); the rest are shaders
-const IMAGE_TYPES = { text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, swatchimg: true, nav: true, garland: true };
+const IMAGE_TYPES = { badgemark: true, text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, swatchimg: true, nav: true, garland: true };
 const STATUS_ASK_MS = 2000;      // after a rebuild: ask cluster-render for its own status text
 // an image layer is "stalled" until its first pixels reach cluster-render, which after a rebuild takes a second or two
 // through the upload budget: normal. Only one still stalled this long is logged as a problem (and its recovery)
@@ -359,7 +361,7 @@ const PLACE_KEYS = ['hudX', 'hudY', 'hudScale'];
 // (0.17.4: "Leave BMW's bottom strip clear" is gone. Since 0.17.0 every cluster theme ends above BMW's strip anyway;
 // its squeeze to 662 / 720 only lifted the theme off the bottoms of BMW's own gauges, car photo Nov 14 2026.)
 // settings that only change what a text shows (the next tick paints it), no rebuild
-const LIVE_KEYS = ['warnOil', 'warnCoolant', 'warnBoost', 'badge', 'badgeBMW', 'gFlipLat', 'gFlipLong', 'gRange', 'gTrail'];
+const LIVE_KEYS = ['warnOil', 'warnCoolant', 'warnBoost', 'badge', 'badgeBMW', 'badgeStyle', 'gFlipLat', 'gFlipLong', 'gRange', 'gTrail'];
 // g (after cauliflowermossgrape's G-Force, MIT, idea only): a sample over G_BAD is a bad reading, not a corner;
 // the rest are averaged over G_AVG_MS so kerbs and potholes don't throw the dot about
 const G_BAD = 3;
@@ -548,6 +550,7 @@ class HudApp {
         this.label = this.config.statusName || 'HUD';
         this.layoutTheme = null;         // the active layout's own theme, if it has one
         this.layouts = new Layouts(ctx.dataDir, this.log, this.size);
+        this.logos = new Logos(ctx.dataDir, this.log);        // the owner's badge logo PNGs (logos.js)
         this.widgets = new Map();        // widget.id -> { w, ref, sheet | null, last, lastPaint }
         this.sheets = [];                // the packed image layers: { ref, klass, z, x, y, w, h, members, buf }
         this.boostFes = null; this.boostFesAt = 0;    // bar, from the sport display signal
@@ -3267,6 +3270,16 @@ class HudApp {
                 glow: w.glow ? this.theme.glow : 0,
             });
             this._blitDiff(x, buf);
+        } else if (w.type === 'badgemark') {
+            // the badge: the owner's logo PNG for the model (logos.js) when there is one and "badgeStyle" is Logo, else the model's name as text
+            if (!force && now - x.lastPaint < 1000) return;
+            const model = this.setting('badge'), name = badges.text(model, this.setting('badgeBMW') === true);
+            const logo = this.setting('badgeStyle') === 'text' || !name ? null : this.logos.find(model);
+            const role = w.color || 'dim';
+            const key = logo ? 'L:' + logo.name + ':' + logo.mtime : 'T:' + name + '|' + role;
+            if (!force && key === x.last) return;
+            x.last = key; x.lastPaint = now;
+            this._blitDiff(x, logo ? pngFit(logo.img, w.w, w.h, w.align) : textRaster.drawText(w.w, w.h, name, { font: w.font, color: color(this.theme, role), align: w.align, spacing: w.spacing }));
         } else if (w.type === 'badge') {
             if (!force && now - x.lastPaint < TEXT_MS) return;
             const s = (w.navHide && this.navShown) || (w.tone === 'demo' && !(this.demo && this.demo.playing())) ? '' : this._resolve(w.text);

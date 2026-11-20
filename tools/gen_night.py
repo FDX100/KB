@@ -84,4 +84,5 @@ del L['packWaze']
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     json.dump(L, f, indent=2, ensure_ascii=False)
     f.write('\n')
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import badge_spot; badge_spot.apply(OUT)
 print('night.json:', len(W), 'widgets')

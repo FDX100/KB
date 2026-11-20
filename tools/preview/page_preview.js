@@ -65,6 +65,8 @@ const hud = quiet({
     activeName: 'apex', playDemo() {}, demoPlaying: () => false, demoBlocked: () => null, mapLayout: true,
     setting: (k) => store[k], car: { data: () => ({ demo: false }) },
     waze: { info: () => ({ text: 'Map showing in the theme', up: true, ok: true }) },
+    // the real logo lookup on the bench's data folder (put test PNGs in bench/.data/kurdbimmer_themes/logos/)
+    logos: new (require(path.join(stage, 'logos.js')).Logos)(path.join(root, 'bench', '.data', 'kurdbimmer_themes'), { info() {}, warn() {} }),
 });
 const outDir = path.join(__dirname, 'out');
 fs.mkdirSync(outDir, { recursive: true });
@@ -73,6 +75,7 @@ const langs = process.env.COLLECT ? ['en'] : ['en', 'ckb'];
 const shots = [];
 langs.forEach((lang) => tabs.forEach((tab) => {
     store.language = lang;
+    if (process.env.PREVIEW_BADGE) store.badge = process.env.PREVIEW_BADGE;     // e.g. M340i, to see a logo from the bench's logos folder
     try {
         const p = new Page(ctx, hud, { title: spec.title, what: 'cluster', look: { name: 'Themes', style: 'hero', tags: {} }, tabs, settings: ['units', 'clock', 'timeZone', 'tankLitres', 'redline', 'nightDim'] });
         p.tab = tab;

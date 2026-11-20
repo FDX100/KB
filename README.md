@@ -65,8 +65,34 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
 - **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab. Not yet tried on a car.
+- **Badges and logos:** every theme shows your model badge, as text or as your own logo PNG (see Badges and logos below).
 - **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds. Not yet tried on a car.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).
+
+## Badges and logos
+
+The **Badge** tab picks your model (1 Series to XM, i, Z4, ALPINA ...). Every theme has a place for the badge, in a spot that is free in that theme.
+
+- **Text:** with nothing else set, the badge is the model's name in the theme's own font ("BMW" lettering optional).
+- **Logo:** the app ships **no BMW, M, i or ALPINA artwork** (those are trademarks, and this repository is public), so the logos are your own PNG files. Put them in the app's data folder, `logos/`, and the badge shows the logo instead of the text, in every theme. The Badge tab shows which file it found.
+
+File names, the first one that exists wins:
+
+| File | Used for |
+| --- | --- |
+| `m340i.png`, `x3-m40i.png`, `i4-edrive40.png`, `b3.png` ... | that model (lower case, dashes) |
+| `alpina.png` | ALPINA models |
+| `i.png` | i4, i5, i7, iX and their M versions |
+| `m.png` | M models and M Performance (M135i, M340i, X3 M40i, XM ...) |
+| `bmw.png` | every other model |
+
+Transparent PNG, any size up to 4096 px, 8 or 16 bit, not interlaced; it is scaled to fit the theme's spot. Put the files on the car over SSH:
+
+```sh
+./scripts/logos.sh root@<car-ip> bmw.png m.png i.png alpina.png
+```
+
+The app looks at the folder every few seconds, so no restart is needed. **Badge style: Text only** turns the logos off. On the bench, put the files in `bench/.data/kurdbimmer_themes/logos/`. The `logos/` folders are git-ignored, so the pictures are never committed. A theme made with `tools/gen_*.py` gets its badge from `tools/badge_spot.py` (one line in each generator): add a spot there for a new theme.
 
 ## Try it without a car
 

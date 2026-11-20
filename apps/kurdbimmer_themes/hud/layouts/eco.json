@@ -697,6 +697,19 @@
       "toggle": "!mapUp"
     },
     {
+      "id": "badgemark",
+      "type": "badgemark",
+      "z": 5,
+      "x": 810,
+      "y": 180,
+      "w": 300,
+      "h": 80,
+      "font": "badge",
+      "color": "dim",
+      "align": "center",
+      "toggle": "!mapUp"
+    },
+    {
       "id": "strip_cover_l",
       "type": "fill",
       "class": "content",

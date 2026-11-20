@@ -22,6 +22,7 @@ const TYPES = {
     revbar: ['barH'],
     lights: [],
     badge: ['text', 'font', 'tone'],
+    badgemark: ['font'],
     fill: [],
     box: [],
     grid: [],

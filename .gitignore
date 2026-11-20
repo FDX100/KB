@@ -1,2 +1,6 @@
 frman
 frman.pub
+
+# the owner's badge logo PNGs: BMW / M / i / ALPINA artwork is never committed (README, Badges and logos)
+logos/
+bench/.data/*/logos/

@@ -24,6 +24,7 @@ const previews = require('./previews');
 const sensors = require('./sensors');
 const visible = require('./visible');
 const badges = require('./badges');
+const pngFit = require('./png').fit;
 const tz = require('./tz');
 const ckb = require('./ckb');
 
@@ -547,13 +548,18 @@ class Page {
         label(cv, rx, 70, 'On the cluster');
         cv.card(rx, 82, rw, 110, 16, [[0, '#000000'], [1, '#05070a']]);
         cv.strokeRoundRect(rx, 82, rw, 110, 16, 1, C.line);
-        cv.text(shown || 'No badge', rx + rw / 2, 148, shown ? 34 : 22, shown ? '#ffffff' : C.dim, { align: 'center', font: 'bold', literal: true });
+        // the owner's logo PNG for this model (logos.js) when there is one and the style is Logo, else the name as text
+        const info = this.hud.logos ? this.hud.logos.describe(model) : { text: '' };
+        const logo = this.get('badgeStyle') !== 'text' && shown ? info.logo : null;
+        if (logo) cv.blit({ w: rw - 60, h: 70, d: pngFit(logo.img, rw - 60, 70, 'center') }, rx + 30, 102);
+        else cv.text(shown || 'No badge', rx + rw / 2, 148, shown ? 34 : 22, shown ? '#ffffff' : C.dim, { align: 'center', font: 'bold', literal: true });
         let y = 204;
         y = this.toggleRow(cv, rx, y, rw, 'BMW lettering', 'badgeBMW');
+        y = this.pickRow(cv, rx, y, rw, 'Badge style', 'badgeStyle');
         glass(cv, rx, y, rw, 56, model === 'none');
         cv.text('No badge', rx + 18, y + 35, 19, C.text, { literal: true });
         cv.target(rx, y, rw, 56, () => this.set('badge', 'none'), 'badge:none', 14);
-        note(cv, rx, y + 92, ['Drawn as text in the theme\'s own font.', 'GT3: top left. Sport and M: bottom centre.']);
+        note(cv, rx, y + 80, [info.text || '', 'Logos are your own PNG files in the data folder: logos/bmw.png,', 'm.png, i.png, alpina.png, or one per model (m340i.png). See the README.']);
     }
 
     /* ---------- Alerts (both) ---------- */
