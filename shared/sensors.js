@@ -33,6 +33,7 @@ const LIST = [
     { id: 'fuel', name: 'Fuel level', cat: 'Fuel', head: 'FUEL', tok: 'fuelPct', unit: () => '%' },
     { id: 'range', name: 'Range', cat: 'Fuel', head: 'RANGE', tok: 'range', unit: (us) => (us ? 'MI' : 'KM') },
     // plug-in hybrids (330e, X5 45e ...): the high-voltage battery's charge, read from its battery unit (hud.js HV_SOC)
+    { id: 'recup', name: 'Recharging (estimated)', cat: 'Fuel', head: 'REGEN', tok: 'recup', unit: () => '%' },
     { id: 'hvSoc', name: 'Hybrid battery (plug-in hybrids)', cat: 'Fuel', head: 'BATTERY', tok: 'hvSoc', unit: () => '%' },
     { id: 'tyrePFL', name: 'Tyre pressure, front left', cat: 'Tyres', head: 'FL', tok: 'tyreP:FL', unit: P },
     { id: 'tyrePFR', name: 'Tyre pressure, front right', cat: 'Tyres', head: 'FR', tok: 'tyreP:FR', unit: P },

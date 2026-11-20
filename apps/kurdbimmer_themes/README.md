@@ -2,7 +2,7 @@
 
 <img src="icon.png" width="72" align="left" alt="KurdBimmer icon">
 
-Redraws the whole instrument cluster in one of sixteen themes, with an English / Kurdish (Sorani) settings page. Open **KurdBimmer Themes** from the apps menu on the center screen.
+Redraws the whole instrument cluster in one of seventeen themes, with an English / Kurdish (Sorani) settings page. Open **KurdBimmer Themes** from the apps menu on the center screen.
 
 Needs the **cluster-render** app. For the theme pictures, installing, the Waze map window, the Kurdish interface and how to make a theme, see the [main README](../../README.md).
 

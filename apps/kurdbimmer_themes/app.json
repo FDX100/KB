@@ -1,8 +1,8 @@
 {
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
-  "description": "Sixteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.20.5",
+  "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
+  "version": "0.21.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -187,6 +187,10 @@
         [
           "hybrid",
           "Hybrid"
+        ],
+        [
+          "erace",
+          "E-Race"
         ]
       ]
     },
@@ -269,6 +273,10 @@
         [
           "hybrid",
           "Hybrid"
+        ],
+        [
+          "erace",
+          "E-Race"
         ]
       ]
     },
@@ -345,6 +353,10 @@
         [
           "hybrid",
           "Hybrid"
+        ],
+        [
+          "erace",
+          "E-Race"
         ]
       ]
     },
@@ -421,6 +433,10 @@
         [
           "hybrid",
           "Hybrid"
+        ],
+        [
+          "erace",
+          "E-Race"
         ]
       ]
     },

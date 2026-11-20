@@ -3,7 +3,7 @@
 <h1 align="center">KurdBimmer Themes</h1>
 
 <p align="center">
-Sixteen full-screen instrument cluster themes for BMW iDrive 7 (MGU), with a Kurdish (Sorani) interface.<br>
+Seventeen full-screen instrument cluster themes for BMW iDrive 7 (MGU), with a Kurdish (Sorani) interface.<br>
 Made by <a href="https://github.com/FDX100">FDX100</a>.
 </p>
 
@@ -11,7 +11,7 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 
 ## What you get
 
-- **16 cluster themes**, each drawn for the full 1920x720 cluster (see below).
+- **17 cluster themes**, each drawn for the full 1920x720 cluster (see below).
 - **Waze on the cluster:** with "Show Waze map inside the theme" on, themes that have a map window open it in the middle. Without Waze the middle stays as the theme drew it.
 - **Drive-mode switching:** pick a different theme for Comfort, Sport and Eco Pro.
 - **Readouts, badge, G-meter, alerts, shift lights and units** to set from the app's page on the center screen.
@@ -29,6 +29,7 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 <tr><td align="center" width="50%"><img src="docs/themes/epower.png" width="440" alt="ePower"><br><b>ePower</b><br>Plug-in hybrid dials: speed, POWER % with a CHARGE sector, fuel and battery.</td><td align="center" width="50%"><img src="docs/themes/rain.png" width="440" alt="Digital Rain"><br><b>Digital Rain</b><br>Matrix-style falling glyphs behind seven-segment speed.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/neon.png" width="440" alt="Neon City"><br><b>Neon City</b><br>Cyberpunk skyline, neon frames, huge yellow speed.</td><td align="center" width="50%"><img src="docs/themes/glass.png" width="440" alt="Glass"><br><b>Glass</b><br>Two big glass-ring dials, the middle left clear for Waze.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/e46.png" width="440" alt="E46 M3"><br><b>E46 M3</b><br>White-faced analog cluster with chrome bezels and an orange LCD.</td><td align="center" width="50%"><img src="docs/themes/hybrid.png" width="440" alt="Hybrid"><br><b>Hybrid</b><br>One big speed with the battery charge line.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/erace.png" width="440" alt="E-Race"><br><b>E-Race</b><br>Race dash for hybrids and EVs: power and regen bars, battery, range and a huge gear.</td></tr>
 </table>
 
 Pictures are bench screenshots of the cluster area, not photos from a car.
