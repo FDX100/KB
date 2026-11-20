@@ -190,15 +190,15 @@ const THEMES = {
         bg: [0, 0, 0, 255], panel: [0, 0, 0, 255], line: [150, 156, 168, 255], head: [255, 106, 26, 255],
         ink: [12, 12, 14, 255], accent: [255, 106, 26, 255], well: [0, 0, 0, 255],
     },
-    // E-Race (layout erace.json): a race dash for hybrids and EVs, black with an electric lime accent, a green for regen.
-    erace: {
-        name: 'E-Race',
-        fg: [244, 246, 250, 255], dim: [128, 138, 132, 255], track: [255, 255, 255, 24], arc: [168, 255, 40, 255],
+    // Luxe (layout luxe.json): a classic, luxurious e-drive cluster, espresso black with champagne gold and ivory.
+    luxe: {
+        name: 'Luxe',
+        fg: [241, 234, 216, 255], dim: [158, 145, 122, 255], track: [201, 168, 106, 30], arc: [214, 178, 108, 255],
         glow: 0, stripe: false,
-        bar: { low: [168, 255, 40], mid: [255, 190, 30], high: [255, 42, 42], midAt: 'shift' },
-        rev: { from: [168, 255, 40], to: [255, 42, 42] },
-        bg: [0, 0, 0, 255], panel: [0, 0, 0, 255], line: [96, 108, 100, 255], head: [168, 255, 40, 255],
-        ink: [10, 14, 10, 255], accent: [168, 255, 40, 255], well: [0, 0, 0, 255], green: [40, 220, 130, 255],
+        bar: { low: [214, 178, 108], mid: [236, 200, 120], high: [226, 80, 60], midAt: 'shift' },
+        rev: { from: [214, 178, 108], to: [226, 80, 60] },
+        bg: [5, 4, 3, 255], panel: [5, 4, 3, 255], line: [150, 124, 80, 255], head: [214, 178, 108, 255],
+        ink: [12, 9, 6, 255], accent: [214, 178, 108, 255], well: [5, 4, 3, 255], green: [118, 204, 170, 255],
     },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
