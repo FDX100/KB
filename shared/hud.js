@@ -355,6 +355,9 @@ const TICK_MS = 50;              // 20 Hz: shift bar and gauges
 const TEXT_MS = 200;             // text re-draws at most 5 times a second (what BMW's own readouts do)
 const TARGET_SIZES = { hud: [800, 480], panel: [1920, 720] };
 const MODE_KEY = { comfort: 'inComfort', sport: 'inSport', eco: 'inEco' };
+// a hybrid's powertrain state, from the engine (rpm): a theme of its own for it, on top of the drive mode's ("same": the drive mode's)
+const POWER_KEY = { hybrid: 'inHybrid', electric: 'inElectric' };
+const POWER_HOLD_MS = 6000, POWER_DWELL_MS = 20000, ENGINE_ON_RPM = 150;
 const TYRE_CORNERS = ['FL', 'FR', 'RL', 'RR'];
 // the HUD's place (the page's Position tab): settings that move / scale the layers already there, no rebuild
 const PLACE_KEYS = ['hudX', 'hudY', 'hudScale'];
@@ -624,7 +627,7 @@ class HudApp {
         this.layouts.onChange(() => this._rebuild());
         ctx.settings.onChange((key) => {
             // a theme or layout picked anywhere (the page asks first, the kit's All settings list doesn't): no longer stepping aside
-            if (['hudLayout', 'inComfort', 'inSport', 'inEco', 'byMode'].indexOf(key) >= 0 && this.screen.yielded) this.screen.release();
+            if (['hudLayout', 'inComfort', 'inSport', 'inEco', 'inHybrid', 'inElectric', 'byMode'].indexOf(key) >= 0 && this.screen.yielded) this.screen.release();
             if (PLACE_KEYS.indexOf(key) >= 0) this._guard('place', () => this._place());
             else if (LIVE_KEYS.indexOf(key) >= 0) this.widgets.forEach((x) => { x.last = null; });
             else if (key !== 'demo') this._rebuild(); else this._status();
@@ -1161,6 +1164,10 @@ class HudApp {
     }
     /** The layout the driver picked for now, before anything that makes us step aside. */
     _chosenName() {
+        if (this.setting('byMode') === true && this.powertrain && POWER_KEY[this.powertrain]) {
+            const p = this.setting(POWER_KEY[this.powertrain]);
+            if (p && p !== 'same') return p;
+        }
         if (this.setting('byMode') === true && this.driveMode && MODE_KEY[this.driveMode]) {
             const v = this.setting(MODE_KEY[this.driveMode]);
             if (v) return v;
@@ -1286,7 +1293,7 @@ class HudApp {
         if (this.problem) return this.label + ': ' + this.problem;
         const byMode = this.setting('byMode') === true;
         const mode = byMode ? (this.driveRaw ? ' (drive mode not recognised: the car sends ' + this.driveRaw + ')'
-            : this.driveMode ? ' (' + MODE_NAME[this.driveMode] + ')' : ' (drive mode not seen yet)') : '';
+            : this.driveMode ? ' (' + MODE_NAME[this.driveMode] + (this.powertrain ? ', ' + this.powertrain : '') + ')' : ' (drive mode not seen yet)') : '';
         const what = this.target === 'panel' ? 'cluster' : 'HUD';
         if (this.activeName === 'off' && this.vehHeld) return this.label + ' paused: the car is off or switching on / off (vehicle state ' + this.vstate.text() + '); it comes back when the car is on';
         if (this.activeName === 'off' && this.claimBy) return this.label + ' off: ' + this.claimBy.charAt(0).toUpperCase() + this.claimBy.slice(1) + ' has the HUD; it comes back when that app lets go';
@@ -3151,6 +3158,7 @@ class HudApp {
         const now = Date.now();
         this._smoothRpm(now);
         this._recupTick(now);
+        this._powertrainTick(now);
         if (this.charging === true || (this.car.data().demo && process.env.KB_CHARGING && !this.charging)) this._chargeUpdate(now, null);
         this._cueTick(now);
         if (now - (this.bumpAt || 0) >= 1000) { this.bumpAt = now; smartTemps.bumpTick(this); }
@@ -3183,6 +3191,27 @@ class HudApp {
     _avgSpeed() {
         if (this.car.data().demo) return 54;
         return this.tripMs >= 60000 ? this.tripKm / (this.tripMs / 3600000) : null;
+    }
+
+    /**
+     * A hybrid's powertrain state for "In Hybrid" / "In Electric" (settings inHybrid, inElectric): the engine running (rpm from
+     * ENGINE_ON_RPM) is Hybrid, the engine off is Electric. A state must hold POWER_HOLD_MS before it counts and the theme
+     * changes at most every POWER_DWELL_MS (a theme change redraws the cluster), so a hybrid starting and stopping its engine
+     * in traffic doesn't flip the theme. Nothing happens unless "Change with the drive mode" is on and one of the two is set.
+     */
+    _powertrainTick(now) {
+        const wanted = this.setting('byMode') === true && (this.setting('inHybrid') !== 'same' || this.setting('inElectric') !== 'same');
+        const rpm = this._raw('rpm');
+        if (!wanted || !isNum(rpm)) {
+            if (this.powertrain && !wanted) { this.powertrain = null; this.ptCand = null; if (this._layoutName() !== this.activeName) this._rebuild(); }
+            return;
+        }
+        const cand = rpm >= ENGINE_ON_RPM ? 'hybrid' : 'electric';
+        if (cand !== this.ptCand) { this.ptCand = cand; this.ptSince = now; }
+        if (cand === this.powertrain || now - this.ptSince < POWER_HOLD_MS || now - (this.ptChangedAt || 0) < POWER_DWELL_MS) return;
+        this.log.info('powertrain ' + cand + (this.powertrain ? ' (was ' + this.powertrain + ')' : ''));
+        this.powertrain = cand; this.ptChangedAt = now;
+        if (this._layoutName() !== this.activeName) this._rebuild(); else this._status();
     }
 
     /**

@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -368,6 +368,174 @@
       "type": "choice",
       "default": "off",
       "options": [
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "apex",
+          "Apex"
+        ],
+        [
+          "alpina",
+          "Alpina"
+        ],
+        [
+          "concept",
+          "Concept"
+        ],
+        [
+          "live",
+          "Live Cockpit"
+        ],
+        [
+          "eco",
+          "Eco"
+        ],
+        [
+          "classic",
+          "Classic"
+        ],
+        [
+          "classic_map",
+          "Classic Map"
+        ],
+        [
+          "night",
+          "Night Drive"
+        ],
+        [
+          "mdigital",
+          "M Digital"
+        ],
+        [
+          "bluedials",
+          "Blue Dials"
+        ],
+        [
+          "epower",
+          "ePower"
+        ],
+        [
+          "rain",
+          "Digital Rain"
+        ],
+        [
+          "neon",
+          "Neon City"
+        ],
+        [
+          "glass",
+          "Glass"
+        ],
+        [
+          "e46",
+          "E46 M3"
+        ],
+        [
+          "hybrid",
+          "Hybrid"
+        ],
+        [
+          "luxe",
+          "Luxe"
+        ]
+      ]
+    },
+    {
+      "key": "inHybrid",
+      "label": "In Hybrid (engine running)",
+      "type": "choice",
+      "default": "same",
+      "options": [
+        [
+          "same",
+          "Same as the drive mode"
+        ],
+        [
+          "off",
+          "Off (BMW's own cluster)"
+        ],
+        [
+          "apex",
+          "Apex"
+        ],
+        [
+          "alpina",
+          "Alpina"
+        ],
+        [
+          "concept",
+          "Concept"
+        ],
+        [
+          "live",
+          "Live Cockpit"
+        ],
+        [
+          "eco",
+          "Eco"
+        ],
+        [
+          "classic",
+          "Classic"
+        ],
+        [
+          "classic_map",
+          "Classic Map"
+        ],
+        [
+          "night",
+          "Night Drive"
+        ],
+        [
+          "mdigital",
+          "M Digital"
+        ],
+        [
+          "bluedials",
+          "Blue Dials"
+        ],
+        [
+          "epower",
+          "ePower"
+        ],
+        [
+          "rain",
+          "Digital Rain"
+        ],
+        [
+          "neon",
+          "Neon City"
+        ],
+        [
+          "glass",
+          "Glass"
+        ],
+        [
+          "e46",
+          "E46 M3"
+        ],
+        [
+          "hybrid",
+          "Hybrid"
+        ],
+        [
+          "luxe",
+          "Luxe"
+        ]
+      ]
+    },
+    {
+      "key": "inElectric",
+      "label": "In Electric (engine off)",
+      "type": "choice",
+      "default": "same",
+      "options": [
+        [
+          "same",
+          "Same as the drive mode"
+        ],
         [
           "off",
           "Off (BMW's own cluster)"

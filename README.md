@@ -62,6 +62,7 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 ## Using it
 
 - **Look:** choose the theme, and optionally one per drive mode (Comfort, Sport, Eco Pro).
+- **Hybrid and electric cars:** with "Change with the drive mode" on, the Themes tab also has **Hybrid** (engine running) and **Electric** (engine off) cells: pick a theme for each, or leave "Same" to follow the drive mode. The state comes from the engine speed, has to hold for 6 seconds, and the theme changes at most every 20 seconds, so a hybrid starting and stopping its engine in traffic does not keep redrawing the cluster. On a car without a hybrid system, leave both on Same.
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
 - **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab. Not yet tried on a car.

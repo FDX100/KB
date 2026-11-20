@@ -39,8 +39,9 @@ const RAIL = { x: 16, y: 54, w: 252, h: 66, gap: 8 };
 const RAIL7 = { x: 16, y: 54, w: 252, h: 58, gap: 6 };     // seven tabs or more: a little shorter, so they fit
 const RAIL8 = { x: 16, y: 54, w: 252, h: 50, gap: 4 };     // eight tabs (with About): shorter still
 const CX = 300, CR = 1584, CW = CR - CX;
-const MODES = [['inComfort', 'Comfort'], ['inSport', 'Sport'], ['inEco', 'Eco Pro']];
+const MODES = [['inComfort', 'Comfort'], ['inSport', 'Sport'], ['inEco', 'Eco Pro'], ['inHybrid', 'Hybrid'], ['inElectric', 'Electric']];
 const MODE_KEY = { comfort: 'inComfort', sport: 'inSport', eco: 'inEco' };
+const POWER_KEY = { hybrid: 'inHybrid', electric: 'inElectric' };
 const TAB = {
     look: { icon: 'screen' },
     readouts: { name: 'Readouts', icon: 'lines' },
@@ -90,7 +91,7 @@ class Page {
         return o ? o[1] : String(v);
     }
     /** a layout's short name: "Off (BMW's own cluster)" -> "BMW's own" */
-    layoutName(v) { return v === 'off' ? "BMW's own" : this.optLabel('hudLayout', v); }
+    layoutName(v) { return v === 'off' ? "BMW's own" : v === 'same' ? 'Same as mode' : this.optLabel('hudLayout', v); }
     valueText(k) {
         const s = this.item(k), v = this.get(k);
         if (!s) return '';
@@ -112,7 +113,7 @@ class Page {
      */
     chooseLayout(key, v) {
         const scr = this.hud.screen;
-        if (v === 'off' || !scr || !scr.otherOn()) {
+        if (v === 'off' || v === 'same' || !scr || !scr.otherOn()) {
             if (scr) scr.release();
             this.set(key, v);
             return;
@@ -136,7 +137,8 @@ class Page {
 
     /** the key a tap on a theme sets: the drive mode's own while it changes with the drive mode */
     lookKey() {
-        const m = this.hud.driveMode;
+        const m = this.hud.driveMode, pk = this.hud.powertrain ? POWER_KEY[this.hud.powertrain] : null;
+        if (this.get('byMode') === true && pk && this.get(pk) !== 'same') return pk;          // the hybrid / electric theme is the one showing
         return this.get('byMode') === true && MODE_KEY[m] ? MODE_KEY[m] : 'hudLayout';
     }
 
@@ -325,8 +327,8 @@ class Page {
         cv.text(this.yieldNote() || this.tag(shown), rx, py + 58, 17, this.yieldNote() ? '#e0a340' : C.dim, { literal: true });
         const y = this.toggleRow(cv, rx, py + 72, rw, 'Change with the drive mode', 'byMode', 46);
         if (this.get('byMode') === true) {
-            const now = MODE_KEY[this.hud.driveMode], cw = (rw - 24) / 3;
-            MODES.forEach((m, i) => this.modeCell(cv, rx + i * (cw + 12), y, cw, m[1] + (m[0] === now ? '  ·  now' : ''), m[0]));
+            const now = MODE_KEY[this.hud.driveMode], pnow = this.hud.powertrain ? POWER_KEY[this.hud.powertrain] : null, cw = (rw - 12 * (MODES.length - 1)) / MODES.length;
+            MODES.forEach((m, i) => this.modeCell(cv, rx + i * (cw + 12), y, cw, m[1] + (m[0] === now || m[0] === pnow ? ' · now' : ''), m[0]));
         } else this.pickRow(cv, rx, y, rw, 'Theme', 'hudLayout', (v) => this.layoutName(v), 52);
         // the gallery, two rows: a tap shows that theme (in the drive mode the car is in, when it changes with it)
         const looks = this.looks(), cols = Math.max(5, Math.ceil(looks.length / 2)), gap = 12, gy = py + ph + 16;
@@ -347,7 +349,7 @@ class Page {
         const h = 52;
         glass(cv, x, y, w, h, false);
         cv.text(name, x + 14, y + 20, 14, C.dim, { literal: true });
-        cv.text(this.layoutName(this.get(key)), x + 14, y + 42, 18, C.blueHi, { font: 'bold', literal: true });
+        cv.text(this.get(key) === 'same' ? 'Same' : this.layoutName(this.get(key)), x + 14, y + 42, 18, C.blueHi, { font: 'bold', literal: true });
         chevron(cv, x + w - 18, y + h / 2, C.dim);
         cv.target(x, y, w, h, () => { this.picker = { key, title: name, fmt: (v) => this.layoutName(v) }; this.kick(); }, 'set:' + key, 14);
     }
@@ -840,7 +842,7 @@ class Page {
 }
 
 /* ---------- small pieces ---------- */
-const LOOK_KEYS = ['hudLayout', 'inComfort', 'inSport', 'inEco'];
+const LOOK_KEYS = ['hudLayout', 'inComfort', 'inSport', 'inEco', 'inHybrid', 'inElectric'];
 const WARN_KEYS = ['warnOil', 'warnCoolant', 'warnBoost'];
 /** A warning limit as the page shows it, in the display units: "266 °F", "1.2 bar", "Off". */
 function warnText(k, v, us) {
