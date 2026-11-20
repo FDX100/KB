@@ -1760,9 +1760,6 @@ uniform float u_n;         // points used
 uniform vec4 u_geo;        // band width, arc length of the top corner, x where the top line turns thin, y of the top line
 uniform float u_tkL[8];    // arc length of the speed scale's numbers
 uniform float u_tkR[8];    // the same for the rev scale
-uniform float u_speed;     // the speed in number steps (0..7)
-uniform float u_rpm;       // the revs in number steps (thousands, 0..7)
-uniform float u_red;       // the redline in number steps
 uniform vec2 u_labL[8];    // centres of the speed numbers
 uniform vec2 u_labR[8];    // centres of the rev numbers
 uniform vec2 u_navy[8];    // the navy field's edge (the band's inner side comes from the path)
@@ -1776,6 +1773,16 @@ uniform vec3 u_mark;       // the ALPINA wordmark: centre x, y and the letter he
 uniform vec4 u_hole;       // the map window x, y, w, h (w 0 = none): an oval, see-through
 uniform float u_oval;      // its edge is feathered over this many px
 uniform vec4 u_halo;       // a dark soft patch behind the big number: centre x, y, radii
+// Everything below is worked out once by the app (hud.js), so a pixel only does what shows at it: boxes (x0, y0, x1, y1,
+// layer px, left frame) round the line's band, the navy field, the panels and the numbers' backings; the value's arc
+// length (left, right) and the needle's point (left x, y, right x, y), as arcAt / pathAt would give; the redline's arc length.
+uniform vec4 u_bb;
+uniform vec4 u_bbN;
+uniform vec4 u_bbP;
+uniform vec4 u_bbL;
+uniform vec2 u_sv;
+uniform vec4 u_np;
+uniform float u_sred;
 
 const vec3 WHITE = vec3(0.93, 0.95, 1.0);
 const vec3 RED = vec3(0.92, 0.1, 0.16);
@@ -1845,29 +1852,6 @@ float wordD(vec2 u) {
     d = min(d, quadD(u, vec2(7.35, 0.0), vec2(7.95, 0.0), vec2(9.13, 1.0), vec2(8.53, 1.0)));
     return d;
 }
-// the arc length of a value in number steps, through the numbers' own arc lengths
-float arcAt(float u, bool right) {
-    float res = right ? u_tkR[0] : u_tkL[0];
-    for (int i = 0; i < 7; i++) {
-        float a = right ? u_tkR[i] : u_tkL[i];
-        float b = right ? u_tkR[i + 1] : u_tkL[i + 1];
-        if (u >= float(i)) res = mix(a, b, clamp(u - float(i), 0.0, 1.0));
-    }
-    return res;
-}
-// the point of the line at an arc length
-vec2 pathAt(float sv) {
-    vec2 r = u_path[0];
-    for (int i = 0; i < 15; i++) {
-        if (float(i) >= u_n - 1.0) break;
-        if (sv >= u_cum[i]) {
-            float L = max(u_cum[i + 1] - u_cum[i], 0.001);
-            r = mix(u_path[i], u_path[i + 1], clamp((sv - u_cum[i]) / L, 0.0, 1.0));
-        }
-    }
-    return r;
-}
-
 void main() {
     vec2 p = v_uv * u_size;
     bool right = p.x > u_size.x * 0.5;
@@ -1875,19 +1859,21 @@ void main() {
     vec3 c = vec3(0.0);
 
     // the nearest point of the line: its arc length s and the signed distance sd (+ inside the scale)
-    float best = 1e6, s = 0.0, sd = 0.0;
-    for (int i = 0; i < 15; i++) {
-        if (float(i) >= u_n - 1.0) break;
-        vec2 a = u_path[i], b = u_path[i + 1], ba = b - a;
-        float L = max(length(ba), 0.001);
-        float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
-        vec2 d = q - (a + ba * h);
-        float dist = length(d);
-        if (dist < best) { best = dist; s = u_cum[i] + h * L; sd = (ba.x * d.y - ba.y * d.x) / L; }
+    float best = 1e6, s = 0.0, sd = 1e5;      // far from the line: nothing of it shows (sd: far inside)
+    if (q.x > u_bb.x && q.x < u_bb.z && q.y > u_bb.y && q.y < u_bb.w) {
+        sd = 0.0;
+        for (int i = 0; i < 15; i++) {
+            if (float(i) >= u_n - 1.0) break;
+            vec2 a = u_path[i], b = u_path[i + 1], ba = b - a;
+            float L = max(length(ba), 0.001);
+            float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
+            vec2 d = q - (a + ba * h);
+            float dist = length(d);
+            if (dist < best) { best = dist; s = u_cum[i] + h * L; sd = (ba.x * d.y - ba.y * d.x) / L; }
+        }
     }
     float W = u_geo.x, sCor = u_geo.y;
-    float v = right ? u_rpm : u_speed;
-    float sv = arcAt(v, right);
+    float sv = right ? u_sv.y : u_sv.x;
 
     // blue haze above the bottom line
     float hz = exp(-abs(q.y - u_bl.y + 22.0) / 20.0) * smoothstep(u_bl.x + 60.0, u_bl.x + 200.0, q.x)
@@ -1895,13 +1881,13 @@ void main() {
     c += vec3(0.04, 0.22, 0.95) * hz * 0.55;
 
     // the navy field: inside the band, right of it up to the panels
-    if (sd > W - 0.5 && polyN(q) < 0.0) {
+    if (sd > W - 0.5 && q.x > u_bbN.x && q.x < u_bbN.z && q.y > u_bbN.y && q.y < u_bbN.w && polyN(q) < 0.0) {
         float ty = clamp((q.y - u_geo.w) / (u_bl.y - u_geo.w), 0.0, 1.0);
         c = mix(vec3(0.012, 0.035, 0.21), vec3(0.02, 0.075, 0.34), ty);
     }
     // the two glass panels
     float rr = u_pn.w;
-    float dR = polyR(q) - rr;
+    float dR = (q.x > u_bbP.x && q.x < u_bbP.z && q.y > u_bbP.y && q.y < u_bbP.w) ? polyR(q) - rr : 1e3;
     if (dR < 0.5) {
         float ty = clamp((q.y - u_geo.w) / (u_bl.y - u_geo.w), 0.0, 1.0);
         // which side of the second divider: the lower left half is the brighter one
@@ -1917,10 +1903,12 @@ void main() {
     c = put(c, vec3(0.0), cov(segD(q, u_l1.xy, u_l1.zw) - 2.2));
     c = put(c, vec3(0.0), cov(segD(q, u_l2.xy, u_l2.zw) - 2.2));
     // the dark backings behind the numbers
-    for (int i = 0; i < 8; i++) {
-        vec2 lc = right ? u_labR[i] : u_labL[i];
-        float bd = length(max(abs(q - lc) - vec2(28.0, 13.0), 0.0)) - 9.0;
-        c = mix(c, vec3(0.0), 0.8 * (1.0 - smoothstep(-2.0, 9.0, bd)));
+    if (q.x > u_bbL.x && q.x < u_bbL.z && q.y > u_bbL.y && q.y < u_bbL.w) {
+        for (int i = 0; i < 8; i++) {
+            vec2 lc = right ? u_labR[i] : u_labL[i];
+            float bd = length(max(abs(q - lc) - vec2(28.0, 13.0), 0.0)) - 9.0;
+            c = mix(c, vec3(0.0), 0.8 * (1.0 - smoothstep(-2.0, 9.0, bd)));
+        }
     }
     // a dark soft patch behind the big number
     vec2 hh = (q - u_halo.xy) / u_halo.zw;
@@ -1934,7 +1922,7 @@ void main() {
         bc = mix(bc, vec3(0.5, 0.68, 1.0), 0.35 * (1.0 - smoothstep(0.0, W, sd)));
         if (s <= sv) bc = mix(bc, vec3(0.74, 0.86, 1.0), 0.42);
         if (right) {
-            float sRed = arcAt(u_red, true);
+            float sRed = u_sred;
             if (s >= sRed) {
                 float zf = (s - sRed) / max(sCor - sRed, 1.0);
                 vec3 zc = zf < 0.55 ? vec3(0.70, 0.22, 0.42) : (zf < 0.64 ? vec3(0.35, 0.55, 0.95) : RED);
@@ -1946,9 +1934,11 @@ void main() {
     // the band's inner edge: a thin light line
     if (s <= sCor + 4.0) c = put(c, vec3(0.8, 0.88, 1.0), cov(abs(sd - W) - 1.1) * 0.9);
     // the white marks from the line inwards, at each number but the first and last
-    for (int k = 1; k < 7; k++) {
-        float tk = right ? u_tkR[k] : u_tkL[k];
-        if (sd > 2.0 && sd < 66.0) c = put(c, WHITE, cov(abs(s - tk) - 2.2) * cov(sd - 64.0));
+    if (sd > 2.0 && sd < 66.0) {
+        for (int k = 1; k < 7; k++) {
+            float tk = right ? u_tkR[k] : u_tkL[k];
+            c = put(c, WHITE, cov(abs(s - tk) - 2.2) * cov(sd - 64.0));
+        }
     }
     // the line: thick white, thin and lilac along the top past x = u_geo.z
     {
@@ -1969,14 +1959,17 @@ void main() {
     }
     // the needle: a red line across the band at the value, level (as BMW's)
     {
-        vec2 np = pathAt(sv);
+        vec2 np = right ? u_np.zw : u_np.xy;
         float inX = q.x - np.x;
         if (inX > -u_nd.x && inX < u_nd.y) c = put(c, RED, cov(abs(q.y - np.y) - 1.9));
     }
     {
         vec2 mu = (p - u_mark.xy) / u_mark.z + vec2(5.8, 0.5);
-        float md = wordD(mu) * u_mark.z;
-        c = put(c, WHITE, cov(md) * (u_hole.z > 0.0 ? 0.0 : 1.0));
+        // only inside the wordmark's own box (its letters span 0..11.6 by 0..1 of the letter height, the edge reaches 1 px out)
+        if (u_hole.z <= 0.0 && mu.x > -0.3 && mu.x < 11.9 && mu.y > -0.3 && mu.y < 1.3) {
+            float md = wordD(mu) * u_mark.z;
+            c = put(c, WHITE, cov(md));
+        }
     }
     float alpha = 1.0;
     if (u_hole.z > 0.0) {
@@ -2063,6 +2056,12 @@ uniform vec4 u_msw[14];    // its band (arc length, depth from, depth to, -)
 uniform vec4 u_ul;         // the line under the speed: x0, x1, y, half thickness
 uniform vec4 u_star;       // the star lattice: pitch x, pitch y, offset x, offset y of the second set
 uniform vec2 u_sorg;       // a point of the lattice
+// Boxes (x0, y0, x1, y1, layer px) the app works out once (hud.js), so a pixel only does what shows at it: round the main line
+// and its glow, round the panel, round the little gauge.
+uniform vec4 u_bb;
+uniform vec4 u_bbP;
+uniform vec4 u_bbM;
+bool inBox(vec2 q, vec4 b) { return q.x > b.x && q.x < b.z && q.y > b.y && q.y < b.w; }
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 float segD(vec2 p, vec2 a, vec2 b) {
     vec2 pa = p - a, ba = b - a;
@@ -2138,20 +2137,23 @@ void main() {
 
     // the nearest point of the main line
     float best = 1e6, s = 0.0, sd = 0.0;
-    for (int i = 0; i < 23; i++) {
-        if (float(i) >= u_n - 1.0) break;
-        vec2 a = u_path[i].xy, b = u_path[i + 1].xy, ba = b - a;
-        float L = max(length(ba), 0.001);
-        float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
-        vec2 d = q - (a + ba * h);
-        float dist = length(d);
-        if (dist < best) { best = dist; s = u_path[i].z + h * (u_path[i + 1].z - u_path[i].z); sd = u_flip * (ba.x * d.y - ba.y * d.x) / L; }
+    bool near = inBox(q, u_bb);
+    if (near) {
+        for (int i = 0; i < 23; i++) {
+            if (float(i) >= u_n - 1.0) break;
+            vec2 a = u_path[i].xy, b = u_path[i + 1].xy, ba = b - a;
+            float L = max(length(ba), 0.001);
+            float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
+            vec2 d = q - (a + ba * h);
+            float dist = length(d);
+            if (dist < best) { best = dist; s = u_path[i].z + h * (u_path[i + 1].z - u_path[i].z); sd = u_flip * (ba.x * d.y - ba.y * d.x) / L; }
+        }
     }
     float sv = u_val.x;
     // 1 where the nearest point of the line is not just its end (beside the line, not past its end)
     float side = step(abs(best - abs(sd)), 1.6);
 
-    vec2 ab = swAB(s);
+    vec2 ab = near ? swAB(s) : vec2(0.0);       // (side is 0 off the box: none of it shows there)
     float over = max(sd - ab.y, 0.0);
     float past = max(s - sv, 0.0);
     float glow = exp(-over / 36.0) * exp(-past / 28.0) * step(0.0, sd - ab.x + 4.0) * smoothstep(u_sw[0].x - 30.0, u_sw[0].x + 10.0, s) * side;
@@ -2159,7 +2161,7 @@ void main() {
     if (sd > 0.0) lay(vec3(0.1, 0.26, 0.5), 0.42 * exp(-sd / 38.0) * side);
 
     // the panel: dark blue glass, its outline, the stars
-    float dP = polyPan(q);
+    float dP = inBox(q, u_bbP) ? polyPan(q) : 1e3;
     if (dP < 0.8) {
         float ty = clamp((q.y - 410.0) / 330.0, 0.0, 1.0);
         vec3 pc = mix(vec3(0.055, 0.125, 0.21), vec3(0.075, 0.17, 0.28), ty);
@@ -2191,32 +2193,36 @@ void main() {
     lay(vec3(0.78, 0.91, 1.0), cov(best - w * 0.5));
     lay(vec3(0.4, 0.64, 0.95), cov(abs(sd - 10.0) - 0.7) * 0.7 * step(0.0, sd));
     // the marks at the numbers
-    for (int i = 0; i < 7; i++) {
-        vec4 t4 = u_tk[i];
-        tickAt(t4.x, s, sd, 0.0); tickAt(t4.y, s, sd, 0.0); tickAt(t4.z, s, sd, 0.0); tickAt(t4.w, s, sd, 0.0);
+    if (sd > 4.4 && sd < 20.6) {      // the marks only reach 4.5 .. 20.5 px inside the line
+        for (int i = 0; i < 7; i++) {
+            vec4 t4 = u_tk[i];
+            tickAt(t4.x, s, sd, 0.0); tickAt(t4.y, s, sd, 0.0); tickAt(t4.z, s, sd, 0.0); tickAt(t4.w, s, sd, 0.0);
+        }
     }
 
     // the little gauge: fuel on the left, coolant on the right
     float mb = 1e6, ms = 0.0, msd = 0.0;
-    for (int i = 0; i < 11; i++) {
-        if (float(i) >= u_cn.z - 1.0) break;
-        vec2 a = u_mp[i].xy, b = u_mp[i + 1].xy, ba = b - a;
-        float L = max(length(ba), 0.001);
-        float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
-        vec2 d = q - (a + ba * h);
-        float dist = length(d);
-        if (dist < mb) { mb = dist; ms = u_mp[i].z + h * (u_mp[i + 1].z - u_mp[i].z); msd = u_flip * (ba.x * d.y - ba.y * d.x) / L; }
+    if (inBox(q, u_bbM)) {
+        for (int i = 0; i < 11; i++) {
+            if (float(i) >= u_cn.z - 1.0) break;
+            vec2 a = u_mp[i].xy, b = u_mp[i + 1].xy, ba = b - a;
+            float L = max(length(ba), 0.001);
+            float h = clamp(dot(q - a, ba) / (L * L), 0.0, 1.0);
+            vec2 d = q - (a + ba * h);
+            float dist = length(d);
+            if (dist < mb) { mb = dist; ms = u_mp[i].z + h * (u_mp[i + 1].z - u_mp[i].z); msd = u_flip * (ba.x * d.y - ba.y * d.x) / L; }
+        }
+        float mv = u_val.y;
+        vec2 mab = mAB(ms);
+        if (abs(mb - abs(msd)) < 1.6 && msd >= mab.x - 1.0 && msd <= mab.y + 1.0 && ms <= mv + 0.5) {
+            float t = clamp((msd - mab.x) / max(mab.y - mab.x, 1.0), 0.0, 1.0);
+            vec3 col = amber(t);
+            col = mix(col, vec3(1.0, 0.98, 0.88), smoothstep(2.5, 0.0, mv - ms) * 0.85);
+            lay(col, cov(mab.x - msd) * cov(msd - mab.y) * cov(ms - mv));
+        }
+        lay(vec3(0.25, 0.55, 0.95), exp(-mb / 6.0) * 0.28);
+        lay(vec3(0.8, 0.92, 1.0), cov(mb - 1.7) );
     }
-    float mv = u_val.y;
-    vec2 mab = mAB(ms);
-    if (abs(mb - abs(msd)) < 1.6 && msd >= mab.x - 1.0 && msd <= mab.y + 1.0 && ms <= mv + 0.5) {
-        float t = clamp((msd - mab.x) / max(mab.y - mab.x, 1.0), 0.0, 1.0);
-        vec3 col = amber(t);
-        col = mix(col, vec3(1.0, 0.98, 0.88), smoothstep(2.5, 0.0, mv - ms) * 0.85);
-        lay(col, cov(mab.x - msd) * cov(msd - mab.y) * cov(ms - mv));
-    }
-    lay(vec3(0.25, 0.55, 0.95), exp(-mb / 6.0) * 0.28);
-    lay(vec3(0.8, 0.92, 1.0), cov(mb - 1.7) );
 
     // the line under the speed (left) and the drive mode (right): a bright bar over a thinner one
     if (q.x >= u_ul.x && q.x <= u_ul.y) {
@@ -2255,6 +2261,9 @@ uniform vec3 u_blc;        // its colour, blue half
 uniform vec3 u_brc;        // and red half
 uniform vec3 u_dvl;        // the blue half's lines' colour
 uniform vec3 u_dvr;        // the red half's
+uniform vec4 u_bs;         // boxes the app works out once (hud.js): round the strip (x0, y0, x1, y1), and
+uniform vec4 u_bw;         // round the map window: a pixel outside them has nothing of it
+bool inBox(vec2 q, vec4 b) { return q.x > b.x && q.x < b.z && q.y > b.y && q.y < b.w; }
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 float segD(vec2 p, vec2 a, vec2 b) {
     vec2 pa = p - a, ba = b - a;
@@ -2265,15 +2274,18 @@ void main() {
     vec2 p = v_uv * u_size;
     vec3 c = vec3(0.0);
     float alpha = 1.0;
-    float ds = polyStrip(p);
+    bool onStrip = inBox(p, u_bs);
+    float ds = onStrip ? polyStrip(p) : 1e3;
     float ty = clamp((p.y - u_sy.x) / max(u_sy.y - u_sy.x, 1.0), 0.0, 1.0);
     vec3 left = mix(u_cl.rgb, u_cl1, ty), right = mix(u_cr0, u_cr1, ty);
     c = mix(c, p.x < u_sy.z ? left : right, cov(ds));
-    for (int i = 0; i < 8; i++) {
-        if (u_div[i].z != u_div[i].x) c = mix(c, p.x < u_sy.z ? u_dvl : u_dvr, cov(segD(p, u_div[i].xy, u_div[i].zw) - 1.0) * cov(ds + 1.0));
+    if (onStrip) {
+        for (int i = 0; i < 8; i++) {
+            if (u_div[i].z != u_div[i].x) c = mix(c, p.x < u_sy.z ? u_dvl : u_dvr, cov(segD(p, u_div[i].xy, u_div[i].zw) - 1.0) * cov(ds + 1.0));
+        }
     }
     if (p.x >= u_bl.x && p.x <= u_bl.y) c = mix(c, p.x < u_sy.z ? u_blc : u_brc, cov(abs(p.y - u_bl.z) - u_bl.w));
-    if (u_hole.z > 0.0) alpha = clamp(0.5 + polyWin(p), 0.0, 1.0);
+    if (u_hole.z > 0.0 && inBox(p, u_bw)) alpha = clamp(0.5 + polyWin(p), 0.0, 1.0);
     gl_FragColor = vec4(c, alpha);
 }`;
 const LGAUGE = `// One of the Live Cockpit theme's two gauges in a cluster-render "effect" layer (GLSL ES 1.00): the left half (blue, the
@@ -2305,6 +2317,14 @@ uniform vec4 u_b1;         // its radius, lit fraction from the bottom, the cold
 uniform vec3 u_gt;         // the bar's track colour
 uniform vec3 u_cold;       // its cold tip colour
 uniform vec3 u_thin;       // its thin line's colour
+// Boxes (x0, y0, x1, y1, layer px) the app works out once (hud.js), so a pixel only does what shows at it: round the outer
+// line and its glow, the inner line, the band, the ticks, the marks.
+uniform vec4 u_bO;
+uniform vec4 u_bI;
+uniform vec4 u_bB;
+uniform vec4 u_bT;
+uniform vec4 u_bK;
+bool inBox(vec2 q, vec4 b) { return q.x > b.x && q.x < b.z && q.y > b.y && q.y < b.w; }
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
 vec4 g_acc;
 void lay(vec3 col, float a) {
@@ -2322,18 +2342,22 @@ void main() {
     g_acc = vec4(0.0);
     // the bright outer line's distance and the thin inner line's
     float dO = 1e6, dI = 1e6;
-    for (int i = 0; i < 19; i++) {
-        if (float(i) + 1.0 >= u_cn.x) break;
-        dO = min(dO, segD(q, u_op[i], u_op[i + 1]));
+    if (inBox(q, u_bO)) {
+        for (int i = 0; i < 19; i++) {
+            if (float(i) + 1.0 >= u_cn.x) break;
+            dO = min(dO, segD(q, u_op[i], u_op[i + 1]));
+        }
     }
-    for (int i = 0; i < 11; i++) {
-        if (float(i) + 1.0 >= u_cn.y) break;
-        dI = min(dI, segD(q, u_ip[i], u_ip[i + 1]));
+    if (inBox(q, u_bI)) {
+        for (int i = 0; i < 11; i++) {
+            if (float(i) + 1.0 >= u_cn.y) break;
+            dI = min(dI, segD(q, u_ip[i], u_ip[i + 1]));
+        }
     }
     // the glow along the outer line
     lay(u_oc, exp(-dO / u_w.z) * u_w.w);
     // the band: unlit, or lit (a gradient) below the cut with a white line on it
-    float db = polyBand(q);
+    float db = inBox(q, u_bB) ? polyBand(q) : 1e3;
     if (db < 0.8) {
         vec3 c = u_bu;
         if (q.y >= u_cm.y) c = mix(u_l0, u_l1, clamp((q.y - u_cm.y) / max(u_cm.z - u_cm.y, 1.0), 0.0, 1.0));
@@ -2341,13 +2365,17 @@ void main() {
         lay(vec3(1.0), cov(abs(q.y - (u_cm.y + u_cm.w)) - u_cm.w) * cov(db + 0.5));
     }
     // the ticks and the marks
-    for (int i = 0; i < 10; i++) {
-        if (float(i) >= u_cn.w) break;
-        lay(u_oc, cov(segD(q, u_tk[i].xy, u_tk[i].zw) - 0.9));
+    if (inBox(q, u_bT)) {
+        for (int i = 0; i < 10; i++) {
+            if (float(i) >= u_cn.w) break;
+            lay(u_oc, cov(segD(q, u_tk[i].xy, u_tk[i].zw) - 0.9));
+        }
     }
-    for (int i = 0; i < 10; i++) {
-        if (float(i) >= u_cm.x) break;
-        lay(u_mc[i].rgb, cov(segD(q, u_mk[i].xy, u_mk[i].zw) - u_mc[i].w));
+    if (inBox(q, u_bK)) {
+        for (int i = 0; i < 10; i++) {
+            if (float(i) >= u_cm.x) break;
+            lay(u_mc[i].rgb, cov(segD(q, u_mk[i].xy, u_mk[i].zw) - u_mc[i].w));
+        }
     }
     lay(u_ic, cov(dI - u_w.y));
     lay(u_oc, cov(dO - u_w.x));

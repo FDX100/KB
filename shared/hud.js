@@ -2374,6 +2374,15 @@ class HudApp {
             c.uniform(ref, 'u_hole', this._hole(w));
             c.uniform(ref, 'u_oval', [isNum(w.holeOval) ? w.holeOval : 0]);
             c.uniform(ref, 'u_halo', [w.halo[0] - w.x, w.halo[1] - w.y, w.halo[2], w.halo[3]]);
+            // boxes the shader tests a pixel against before the costly parts (see shaders.js ALPINA), layer px, left frame
+            const box = (a, padX, padY) => {
+                const xs = a.map((pt) => pt[0] - w.x), ys = a.map((pt) => pt[1] - w.y);
+                return [Math.min.apply(null, xs) - padX, Math.min.apply(null, ys) - padY, Math.max.apply(null, xs) + padX, Math.max.apply(null, ys) + padY];
+            };
+            c.uniform(ref, 'u_bb', box(w.path.slice(0, 16), w.band + 16, w.band + 16));
+            c.uniform(ref, 'u_bbN', box(w.navy, 2, 2));
+            c.uniform(ref, 'u_bbP', box(w.panel, w.panelRadius + 4, w.panelRadius + 4));
+            c.uniform(ref, 'u_bbL', box((w.labelsL || []).concat(w.labelsR || []), 48, 32));
         } else if (w.type === 'cmap') {
             // the Concept theme's middle (shaders.js CMAP): black, a few grey dashes; the map window ("hole") for Waze
             const v4 = (r, n) => { const o = []; (r || []).slice(0, n).forEach((q) => o.push(q[0] - w.x, q[1] - w.y, q[2] - w.x, q[3] - w.y)); while (o.length < n * 4) o.push(0); return o; };
@@ -2407,6 +2416,16 @@ class HudApp {
             c.uniform(ref, 'u_ul', [w.underline[0] - w.x, w.underline[1] - w.x, w.underline[2] - w.y, w.underline[3]]);
             c.uniform(ref, 'u_star', w.star);
             c.uniform(ref, 'u_sorg', [w.starOrigin[0] - w.x, w.starOrigin[1] - w.y]);
+            // boxes the shader tests a pixel against before the costly parts (shaders.js CVIEW): the line plus its glow's reach
+            // (190 px past the swoosh's depth, where it falls under 1/255), the panel, the little gauge plus its band
+            const box = (a, pad) => {
+                const xs = a.map((pt) => pt[0] - w.x), ys = a.map((pt) => pt[1] - w.y);
+                return [Math.min.apply(null, xs) - pad, Math.min.apply(null, ys) - pad, Math.max.apply(null, xs) + pad, Math.max.apply(null, ys) + pad];
+            };
+            const depth = (r) => r.reduce((m, e) => Math.max(m, Math.abs(e[1]), Math.abs(e[2])), 0);
+            c.uniform(ref, 'u_bb', box(w.path, 190 + depth(w.swoosh)));
+            c.uniform(ref, 'u_bbP', box(w.panel, 2));
+            c.uniform(ref, 'u_bbM', box(w.mini, 40 + depth(w.miniBand)));
         } else if (w.type === 'lstrip') {
             // the Live Cockpit theme's bottom strip (shaders.js LSTRIP): the blue / red strip and the Waze map's window ("win", opened by "holeWhen")
             const v2 = (a, n) => { const o = []; (a || []).slice(0, n).forEach((pt) => o.push(pt[0] - w.x, pt[1] - w.y)); while (o.length < n * 2) o.push(0); return o; };
@@ -2422,6 +2441,13 @@ class HudApp {
             c.uniform(ref, 'u_cl1', rgb(w.blue[1]));
             c.uniform(ref, 'u_cr0', rgb(w.red[0]));
             c.uniform(ref, 'u_cr1', rgb(w.red[1]));
+            const bx = (pts, pad) => {
+                if (!pts.length) return [0, 0, 0, 0];
+                const xs = pts.map((pt) => pt[0] - w.x), ys = pts.map((pt) => pt[1] - w.y);
+                return [Math.min.apply(null, xs) - pad, Math.min.apply(null, ys) - pad, Math.max.apply(null, xs) + pad, Math.max.apply(null, ys) + pad];
+            };
+            c.uniform(ref, 'u_bs', bx((w.strip || []).slice(0, 6), 3));
+            c.uniform(ref, 'u_bw', bx((w.win || []).slice(0, 8), 3));
             c.uniform(ref, 'u_div', v4(w.dividers, 8), { type: 'vec4' });
             c.uniform(ref, 'u_bl', [w.bottomLine[0] - w.x, w.bottomLine[1] - w.x, w.bottomLine[2] - w.y, w.bottomLine[3]]);
             c.uniform(ref, 'u_blc', rgb(w.bottomColors[0]));
@@ -2455,6 +2481,18 @@ class HudApp {
             c.uniform(ref, 'u_thin', rgb(w.bar.thin));
             c.uniform(ref, 'u_cm', [marks.length, w.bandY[0] - w.y, w.bandY[1] - w.y, 1.6]);
             c.uniform(ref, 'u_b1', [w.bar.radius, 0, w.bar.coldFrac, w.bar.thinOffset]);
+            // boxes the shader tests a pixel against before the costly parts (shaders.js LGAUGE); empty box = nothing there
+            const box = (pts, pad) => {
+                if (!pts.length) return [0, 0, 0, 0];
+                const xs = pts.map((pt) => pt[0] - w.x), ys = pts.map((pt) => pt[1] - w.y);
+                return [Math.min.apply(null, xs) - pad, Math.min.apply(null, ys) - pad, Math.max.apply(null, xs) + pad, Math.max.apply(null, ys) + pad];
+            };
+            const segs = (r) => r.reduce((o, q) => o.concat([[q[0], q[1]], [q[2], q[3]]]), []);
+            c.uniform(ref, 'u_bO', box(w.outer, Math.ceil(8 * (w.glow[0] || 1)) + 2));
+            c.uniform(ref, 'u_bI', box(w.inner, Math.ceil(w.lineW[1]) + 2));
+            c.uniform(ref, 'u_bB', box(w.band, 2));
+            c.uniform(ref, 'u_bT', box(segs(w.ticks.slice(0, 10)), 3));
+            c.uniform(ref, 'u_bK', box(segs(marks.map((m) => m.seg)), Math.ceil(Math.max.apply(null, [0].concat(marks.map((m) => m.half)))) + 2));
         } else if (w.type === 'efloor') {
             // the Eco theme's perspective floor (shaders.js EFLOOR): "vp" [x, y] (target px), "half" the floor's half width at the bottom
             const rgb = (a) => a.map((v) => v / 255);
@@ -3283,9 +3321,28 @@ class HudApp {
             const key = vals.join('|');
             if (!force && key === x.last) return;
             x.last = key;
-            x.c.uniform(x.ref, 'u_speed', [vals[0]]);
-            x.c.uniform(x.ref, 'u_rpm', [vals[1]]);
-            x.c.uniform(x.ref, 'u_red', [vals[2]]);
+            // the values as arc lengths of the line and the needle's points (what the shader used to work out per pixel)
+            const path = w.path.slice(0, 16).map((pt) => [pt[0] - w.x, pt[1] - w.y]), cum = [0];
+            for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+            const arcAt = (u, tk) => {
+                let res = tk[0];
+                for (let i = 0; i < 7; i++) if (u >= i) res = tk[i] + (tk[i + 1] - tk[i]) * Math.min(1, Math.max(0, u - i));
+                return res;
+            };
+            const pathAt = (sv) => {
+                let r = path[0];
+                for (let i = 0; i < 15 && i < path.length - 1; i++) {
+                    if (sv >= cum[i]) {
+                        const L = Math.max(cum[i + 1] - cum[i], 0.001), t = Math.min(1, Math.max(0, (sv - cum[i]) / L));
+                        r = [path[i][0] + (path[i + 1][0] - path[i][0]) * t, path[i][1] + (path[i + 1][1] - path[i][1]) * t];
+                    }
+                }
+                return r;
+            };
+            const svL = arcAt(vals[0], w.ticksL), svR = arcAt(vals[1], w.ticksR), npL = pathAt(svL), npR = pathAt(svR);
+            x.c.uniform(x.ref, 'u_sv', [svL, svR]);
+            x.c.uniform(x.ref, 'u_np', [npL[0], npL[1], npR[0], npR[1]]);
+            x.c.uniform(x.ref, 'u_sred', [arcAt(vals[2], w.ticksR)]);
         } else if (w.type === 'cview') {
             // the gauge's value -> an arc length of its line through the numbers' own positions (not evenly spaced in value)
             const arcOf = (v, bp, arcs) => {
