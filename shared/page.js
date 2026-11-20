@@ -62,7 +62,8 @@ class Page {
     constructor(ctx, hud, cfg) {
         this.ctx = ctx; this.hud = hud; this.cfg = cfg;
         this.tab = cfg.tabs[0];
-        this.picker = null;              // { key, title } while a list of choices is open over the page
+        this.picker = null;              // { key, title, off, max } while a list of choices is open over the page (off: how far it is scrolled)
+        if (ctx.onScroll) ctx.onScroll((dy) => this.scrollPicker(dy));
         this.loop = null;
         this.slotLayout = null;          // Readouts: the layout whose slots are edited (null: the one showing)
         this.slot = null;                // Readouts: the slot picked (its id)
@@ -800,23 +801,58 @@ class Page {
     drawPicker(cv, bottom) {
         const p = this.picker, s = this.item(p.key), opts = s.type === 'number' ? (s.steps || []).map((v) => [v, null]) : s.options || [];
         cv.fillRect(0, 36, W, bottom + 20, '#000000b0');
-        const w = 620, rh = 58, h = 76 + opts.length * rh, x = (W - w) / 2, y = Math.max(52, (bottom + 44 - h) / 2);
-        cv.card(x, y, w, h, 18, [[0, '#18233a'], [1, '#0c111b']]);
-        cv.strokeRoundRect(x, y, w, h, 18, 1, A(C.blueHi, 0.3));
-        cv.text(p.title.toUpperCase(), x + 26, y + 42, 15, C.label, { font: 'bold', spacing: 2.4, literal: true });
+        // a long list scrolls inside a card that fits the screen: a finger dragged on it, or the controller turned (ctx.onScroll,
+        // scrollPicker); rows are cut at the card's edges, a bar on the right shows where you are
+        const w = 620, rh = 58, n = opts.length, ch = Math.min(76 + n * rh, bottom - 52), x = (W - w) / 2, y = Math.max(52, (bottom + 44 - ch) / 2);
+        const vTop = y + 60, vh = ch - 60 - 14, listH = n * rh, max = Math.max(0, listH - vh);
+        p.max = max;
         const v = this.get(p.key);
+        if (p.off === undefined) {                  // opened: the picked row in the middle
+            const si = Math.max(0, opts.findIndex((o) => o[0] === v));
+            p.off = si * rh - Math.round(vh / 2) + rh / 2;
+        }
+        p.off = Math.min(max, Math.max(0, p.off));
+        cv.card(x, y, w, ch, 18, [[0, '#18233a'], [1, '#0c111b']]);
+        cv.strokeRoundRect(x, y, w, ch, 18, 1, A(C.blueHi, 0.3));
+        cv.text(p.title.toUpperCase(), x + 26, y + 42, 15, C.label, { font: 'bold', spacing: 2.4, literal: true });
+        const clip = max > 0 && typeof cv.clip === 'function';
+        if (clip) cv.clip(x + 4, vTop, w - 8, vh);
         opts.forEach((o, i) => {
-            const ry = y + 60 + i * rh, sel = o[0] === v;
+            const ry = vTop + i * rh - p.off, ry1 = ry + rh - 6;
+            if (ry1 < vTop || ry > vTop + vh) return;
+            if (!clip && max > 0 && (ry < vTop || ry1 > vTop + vh)) return;      // no clipping here: whole rows only
+            const sel = o[0] === v;
             if (sel) cv.roundRect(x + 12, ry, w - 24, rh - 6, 12, A(C.blue, 0.35));
             const text = p.fmt ? p.fmt(o[0]) : o[1] !== null ? o[1] : fmtInt(o[0]) + ' rpm';
             cv.text(text, x + 30, ry + 34, 20, sel ? '#ffffff' : C.text, { font: sel ? 'bold' : 'label', literal: true });
             if (sel) check(cv, x + w - 50, ry + 26, '#ffffff');
-            cv.target(x + 12, ry, w - 24, rh - 6, () => {
+            const ty0 = Math.max(ry, vTop), ty1 = Math.min(ry1, vTop + vh);
+            if (ty1 - ty0 >= 14) cv.target(x + 12, ty0, w - 24, ty1 - ty0, () => {
                 this.picker = null;
                 if (LOOK_KEYS.indexOf(p.key) >= 0) this.chooseLayout(p.key, o[0]); else this.set(p.key, o[0]);
             }, 'pick:' + p.key + ':' + o[0], 12);
         });
+        if (clip) cv.noclip();
+        if (max > 0) {
+            // the scroll bar, and the page's scroll area (cv.scroll) so the controller and a finger scroll the list
+            const bh = Math.max(40, Math.round(vh * vh / listH)), by = vTop + Math.round((vh - bh) * p.off / max);
+            cv.roundRect(x + w - 11, vTop, 5, vh, 2.5, '#ffffff14');
+            cv.roundRect(x + w - 11, by, 5, bh, 2.5, A(C.blueHi, 0.8));
+            cv.text(p.off < max ? 'more below' : 'end', x + w - 26, y + 42, 13, C.dim, { align: 'right', literal: true });
+            cv.scroll = { y: vTop, bar: { x: x + w - 11, y: by, w: 5, h: bh } };
+        }
         cv.target(0, 36, W, bottom, () => { this.picker = null; this.kick(); }, 'pick:close');
+    }
+
+    /** The open list scrolled by dy px (+ = further down), from a finger or the controller; false at its end (display.js onScroll). */
+    scrollPicker(dy) {
+        const p = this.picker;
+        if (!p || !(p.max > 0)) return false;
+        const o = Math.min(p.max, Math.max(0, (p.off || 0) + dy));
+        if (o === p.off) return false;
+        p.off = o;
+        this.kick();
+        return true;
     }
 
     /** The question chooseLayout asks, over the page: the answer button, Cancel, a tap beside it cancels. */

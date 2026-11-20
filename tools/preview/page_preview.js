@@ -79,6 +79,8 @@ langs.forEach((lang) => tabs.forEach((tab) => {
     try {
         const p = new Page(ctx, hud, { title: spec.title, what: 'cluster', look: { name: 'Themes', style: 'hero', tags: {} }, tabs, settings: ['units', 'clock', 'timeZone', 'tankLitres', 'redline', 'nightDim'] });
         p.tab = tab;
+        // PREVIEW_PICKER=inHybrid[:offset] draws that list open over the Themes tab (and scrolled by offset px)
+        if (process.env.PREVIEW_PICKER && tab === 'look') { const [k, off] = process.env.PREVIEW_PICKER.split(':'); p.picker = { key: k, title: k, fmt: (v) => p.layoutName(v) }; if (off) p.picker.off = Number(off); }
         p.render();
         fs.writeFileSync(path.join(outDir, 'page-' + tab + (lang === 'en' ? '' : '-' + lang) + '.png'), last.png(9));
         shots.push(tab + (lang === 'en' ? '' : '-' + lang));
