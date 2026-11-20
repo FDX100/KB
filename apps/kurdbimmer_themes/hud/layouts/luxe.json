@@ -642,14 +642,14 @@
       "y": 136,
       "w": 388,
       "h": 388,
-      "min": 1000000,
-      "max": 2000000,
+      "min": 0,
+      "max": 100,
       "width": 12,
       "color": "green",
-      "start": -29.0,
-      "sweep": 29.33,
+      "start": -0.07,
+      "sweep": -29.33,
       "conn": 2,
-      "signal": "rpm"
+      "signal": "recup"
     },
     {
       "id": "charge",
@@ -749,22 +749,22 @@
         196
       ],
       "conn": 2,
-      "toggle": "!mapUp"
+      "toggle": "centre=clock"
     },
     {
       "id": "mode",
       "type": "text",
       "z": 5,
-      "x": 831,
+      "x": 811,
       "y": 344,
-      "w": 260,
+      "w": 300,
       "h": 33,
-      "text": "{{mode}}",
+      "text": "{{evstate}}  {{mode}}",
       "font": "e_unit",
       "color": "accent",
       "align": "center",
       "spacing": 3,
-      "toggle": "!mapUp"
+      "toggle": "centre=clock"
     },
     {
       "id": "stage",
@@ -778,7 +778,7 @@
       "font": "e_mid",
       "color": "fg",
       "align": "center",
-      "toggle": "!mapUp"
+      "toggle": "centre=clock"
     },
     {
       "id": "range",
@@ -792,7 +792,7 @@
       "font": "e_unit",
       "color": "dim",
       "align": "center",
-      "toggle": "!mapUp"
+      "toggle": "centre=clock"
     },
     {
       "id": "ambient",
@@ -806,7 +806,117 @@
       "font": "e_head",
       "color": "dim",
       "align": "center",
-      "toggle": "!mapUp"
+      "toggle": "centre=clock"
+    },
+    {
+      "id": "chg_bolt",
+      "type": "icon",
+      "icon": "bolt",
+      "z": 5,
+      "x": 916,
+      "y": 96,
+      "w": 90,
+      "h": 110,
+      "color": "green",
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_title",
+      "type": "text",
+      "z": 5,
+      "x": 811,
+      "y": 220,
+      "w": 300,
+      "h": 33,
+      "text": "CHARGING",
+      "font": "e_unit",
+      "color": "green",
+      "align": "center",
+      "spacing": 4,
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_kw",
+      "type": "text",
+      "z": 5,
+      "x": 740,
+      "y": 280,
+      "w": 200,
+      "h": 73,
+      "text": "{{chargeKw}}",
+      "font": "e_mid",
+      "color": "fg",
+      "align": "right",
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_kw_u",
+      "type": "text",
+      "z": 5,
+      "x": 952,
+      "y": 308,
+      "w": 80,
+      "h": 27,
+      "text": "kW",
+      "font": "e_head",
+      "color": "accent",
+      "align": "left",
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_bar",
+      "type": "meter",
+      "class": "content",
+      "z": 2,
+      "x": 771,
+      "y": 380,
+      "w": 380,
+      "h": 18,
+      "signal": "hvSoc",
+      "min": 0,
+      "max": 100,
+      "segments": 30,
+      "gap": 4,
+      "colors": [
+        "green",
+        "green",
+        "green"
+      ],
+      "at": [
+        1,
+        1
+      ],
+      "conn": 2,
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_soc",
+      "type": "text",
+      "z": 5,
+      "x": 831,
+      "y": 414,
+      "w": 260,
+      "h": 73,
+      "text": "{{hvSoc}}%",
+      "font": "e_mid",
+      "color": "fg",
+      "align": "center",
+      "toggle": "centre=charging"
+    },
+    {
+      "id": "chg_eta",
+      "type": "text",
+      "z": 5,
+      "x": 811,
+      "y": 506,
+      "w": 300,
+      "h": 27,
+      "text": "FULL IN {{chargeEta}}",
+      "font": "e_head",
+      "color": "dim",
+      "align": "center",
+      "spacing": 2,
+      "toggle": "centre=charging"
     },
     {
       "id": "strip_cover_l",

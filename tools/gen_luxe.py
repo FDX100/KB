@@ -55,7 +55,7 @@ def arc(i, center, radius, start, sweep, width, color, signal=None, mn=0, mx=1, 
     return d
 
 
-hide = {'toggle': '!mapUp'}
+hide = {'toggle': 'centre=clock'}       # the clock view: not while the map shows, not while charging
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg',
       'hole': [760, 130, 400, 440], 'holeWhen': 'mapUp', 'holeInset': 0, 'holeRadius': 30}]
 # ---- the speed dial: 0..260 km/h (0..160 mph), 0 at the lower left
@@ -75,7 +75,7 @@ PS, PW = -33.0, 200.0
 W.append(dial('pow', RC, PS, PW, 'powerPct', -20, 100, 12, 1, 1))
 for v in (10, 20, 40, 60, 80, 100):
     W.append(text('pw%d' % v, pos(RC, LAB, PS + PW * (v + 20) / 120.0), 70, 'e_lab', str(v), 'dim', 'center'))
-W.append(arc('chg_arc', RC, R - 76, PS + 4, PW * 20 / 120.0 - 4, 12, 'green', conn=2))
+W.append(arc('chg_arc', RC, R - 76, PS + PW * 20 / 120.0 - 0.4, -(PW * 20 / 120.0 - 4), 12, 'green', 'recup', 0, 100, conn=2))      # lit by the estimated recharging, from the top leftwards
 W.append(text('charge', pos(RC, R - 40, PS + 7), 120, 'e_head', 'CHARGE', 'green', 'center', spacing=2))
 W.append(text('power', (RC[0], RC[1] + 70), 200, 'e_mid', '{{powerPct}}', 'fg', 'center'))
 W.append(text('power_cap', (RC[0], RC[1] + 114), 200, 'e_head', 'POWER %', 'accent', 'center', spacing=2))
@@ -83,11 +83,21 @@ W.append(text('batt_lbl', (RC[0], RC[1] + 154), 240, 'e_head', 'BATTERY {{hvSoc}
 W.append(arc('ring_r', RC, 140.0, 0.0, 359.0, 2, 'dim'))
 # ---- the middle: an analog clock, the drive mode, the range (they give way to the map)
 W.append({'id': 'clock', 'type': 'aclock', 'class': 'content', 'z': 3, 'x': 851, 'y': 90, 'w': 220, 'h': 220, 'radius': 92, 'tick': [12, 1.4, 6],
-          'hands': NEEDLE, 'ticks': TICK, 'conn': 2, 'toggle': '!mapUp'})
-W.append(text('mode', (961.0, 360.0), 260, 'e_unit', '{{mode}}', 'accent', 'center', spacing=3, **hide))
+          'hands': NEEDLE, 'ticks': TICK, 'conn': 2, 'toggle': 'centre=clock'})
+W.append(text('mode', (961.0, 360.0), 300, 'e_unit', '{{evstate}}  {{mode}}', 'accent', 'center', spacing=3, **hide))
 W.append(text('stage', (961.0, 440.0), 120, 'e_mid', '{{stage}}', 'fg', 'center', **hide))
 W.append(text('range', (961.0, 520.0), 260, 'e_unit', '{{range}} {{u:distLc}}', 'dim', 'center', **hide))
 W.append(text('ambient', (961.0, 570.0), 200, 'e_head', '{{ambient}}{{u:temp}}', 'dim', 'center', **hide))
+# ---- the charging view in the middle (while plugged in and charging; the map takes the middle before it)
+chg = {'toggle': 'centre=charging'}
+W.append({'id': 'chg_bolt', 'type': 'icon', 'icon': 'bolt', 'z': 5, 'x': 916, 'y': 96, 'w': 90, 'h': 110, 'color': 'green', 'toggle': 'centre=charging'})
+W.append(text('chg_title', (961.0, 236.0), 300, 'e_unit', 'CHARGING', 'green', 'center', spacing=4, **chg))
+W.append(text('chg_kw', (940.0, 316.0), 200, 'e_mid', '{{chargeKw}}', 'fg', 'right', **chg))
+W.append(text('chg_kw_u', (952.0, 322.0), 80, 'e_head', 'kW', 'accent', 'left', **chg))
+W.append({'id': 'chg_bar', 'type': 'meter', 'class': 'content', 'z': 2, 'x': 771, 'y': 380, 'w': 380, 'h': 18, 'signal': 'hvSoc', 'min': 0, 'max': 100,
+          'segments': 30, 'gap': 4, 'colors': ['green', 'green', 'green'], 'at': [1, 1], 'conn': 2, 'toggle': 'centre=charging'})
+W.append(text('chg_soc', (961.0, 450.0), 260, 'e_mid', '{{hvSoc}}%', 'fg', 'center', **chg))
+W.append(text('chg_eta', (961.0, 520.0), 300, 'e_head', 'FULL IN {{chargeEta}}', 'dim', 'center', spacing=2, **chg))
 for w in json.load(open(STRIP))['widgets']:
     if w['id'].startswith('strip_'):
         W.append(w)

@@ -123,7 +123,7 @@ CLUSTER_FONTS = [
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)
     ('e_speed', 'Outfit[wght].ttf', 190, DIGITS + '-', 0, 'Light'),
-    ('e_mid', 'Outfit[wght].ttf', 96, DIGITS + '-', 0, 'Light'),
+    ('e_mid', 'Outfit[wght].ttf', 96, DIGITS + '-.%', 0, 'Light'),
     ('e_lab', 'Outfit[wght].ttf', 32, DIGITS, 0, 'Regular'),
     ('e_unit', 'Outfit[wght].ttf', 30, UPPER + LOWER + DIGITS + '/ .%°+-:', 0, 'Regular'),
     ('e_head', 'Outfit[wght].ttf', 24, UPPER + LOWER + DIGITS + '/ .%°+-:', 0, 'Medium'),

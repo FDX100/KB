@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -728,6 +728,42 @@
         108,
         109,
         110
+      ]
+    },
+    {
+      "key": "batteryKwh",
+      "label": "Battery size (usable, for the charging estimate)",
+      "type": "choice",
+      "default": "12",
+      "options": [
+        [
+          "8",
+          "8 kWh"
+        ],
+        [
+          "10",
+          "10 kWh"
+        ],
+        [
+          "12",
+          "12 kWh"
+        ],
+        [
+          "14",
+          "14 kWh"
+        ],
+        [
+          "16",
+          "16 kWh"
+        ],
+        [
+          "20",
+          "20 kWh"
+        ],
+        [
+          "25",
+          "25 kWh"
+        ]
       ]
     },
     {

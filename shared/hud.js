@@ -342,6 +342,8 @@ const PACK_FORCE_PX = 250000;     // ... but not for more extra pixels than this
 const PACK_SOFT_LAYERS = 24;     // and while the layout has more layers than this, whatever the extra pixels
 const DEFAULT_WASTE = 3;         // a layout without "packWaste": a sheet's box stays within this many times its members' area
 const SHEET_AREA_FRAC = 4;       // the first sheet size limit: 1/4 of the target area (see the header)
+const CHARGE_MIN_RATE = 0.15;    // %/min of battery charge gained while parked that counts as charging (about 1 kW on 12 kWh)
+const CHARGE_WINDOW_MS = 180000, CHARGE_SPAN_MS = 60000;   // the charge readings kept, and the least span a rate is worked out over
 const RECUP_NM = 60;             // engine drag torque (Nm) that stands for full recharging (an estimate)
 const RECUP_G = 0.35;            // braking g that stands for full recharging when there is no torque reading
 const RESET_BACK_MS = 18000;     // restartCluster: how long the cluster unit takes to start again before we draw on it
@@ -741,6 +743,9 @@ class HudApp {
     /** A setting's value, or its default when the saved value isn't one the schema allows. */
     setting(key) {
         // "mapUp": not saved, the Waze map is showing inside the theme now (the setting on, waze.js says so)
+        // "centre": not saved, what the middle of a theme shows now: the Waze map, the charging view or the clock
+        if (key === 'centre') return this.setting('mapUp') ? 'map' : this.charging === true ? 'charging' : 'clock';
+        if (key === 'charging') return this.charging === true;
         if (key === 'mapUp') return !!(this.waze && this.waze.up && this.ctx.settings.get('mapInTheme') === true);
         // "ribScale": not saved, the Ribbon's scale numbers to show: thousands on the bar, "c" while the camera dip is on
         if (key === 'ribScale') return String(this._barMax() / 1000) + (this._cameraOn() ? 'c' : '');
@@ -1026,6 +1031,7 @@ class HudApp {
                     if (isNum(v)) {
                         if (hvMiss >= 3 || !isNum(this.hvSoc)) this.log.info('hybrid battery: ' + v.toFixed(1) + ' % from the battery unit (SME 0x07, DDBC)');
                         this.hvSoc = v; this.hvSocAt = Date.now(); hvMiss = 0;
+                        this._chargeUpdate(this.hvSocAt, v);
                     } else if (++hvMiss === 3) {
                         this.log.info('hybrid battery: no answer from the battery unit (' + ((rd.raws[rd.key(HV_SOC)] || {}).why || '?') + '); asked once a minute');
                     }
@@ -1853,6 +1859,9 @@ class HudApp {
             case 'fuelPct': { const v = this._raw('fuel'); return isNum(v) ? String(Math.round(v * 100)) : '--'; }
             case 'ambientN': { const v = this._raw('ambient'); return isNum(v) ? String(Math.round(us ? v * 9 / 5 + 32 : v)) : '--'; }
             case 'torque': { const v = this._raw('torque'); return fix(isNum(v) ? (us ? v * 0.737562 : v) : v, 0); }
+            case 'chargeKw': return isNum(this.chargeKw) ? this.chargeKw.toFixed(1) : '--';
+            case 'chargeEta': return this.chargeEta ? this.chargeEta : '--';
+            case 'evstate': { const d = this.car.data(); return isNum(d.rpm) && d.rpm >= 150 ? 'HYBRID' : isNum(d.speed) && d.speed > 1 ? 'EV' : 'READY'; }
             case 'recup': { const v = this._raw('recup'); return isNum(v) ? String(Math.round(v)) : '--'; }
             case 'torquePct': case 'powerPct': { const v = this._raw(tok); return isNum(v) ? String(Math.min(100, Math.round(v))) : '--'; }
             case 'boostHi': return us ? '20' : '1.4';
@@ -2007,6 +2016,7 @@ class HudApp {
         }
         this.problem = null;
         this.mapLayout = layout.widgets.some((w) => w.holeWhen === 'mapUp');
+        this.chargeLayout = layout.widgets.some((w) => typeof w.toggle === 'string' && /centre/.test(w.toggle));      // a charging view in the middle
         // "mapLive" holds only while nothing else changes with the map (a widget toggled on mapUp needs the rebuild)
         this.mapLive = layout.mapLive === true && !layout.widgets.some((w) => typeof w.toggle === 'string' && w.toggle.indexOf('mapUp') >= 0);
         this._wazeWant();
@@ -3110,6 +3120,7 @@ class HudApp {
         const now = Date.now();
         this._smoothRpm(now);
         this._recupTick(now);
+        if (this.charging === true || (this.car.data().demo && process.env.KB_CHARGING && !this.charging)) this._chargeUpdate(now, null);
         this._cueTick(now);
         if (now - (this.bumpAt || 0) >= 1000) { this.bumpAt = now; smartTemps.bumpTick(this); }
         // the 0-60 timer only on the car's own data (the demo drive would set a best time)
@@ -3141,6 +3152,38 @@ class HudApp {
     _avgSpeed() {
         if (this.car.data().demo) return 54;
         return this.tripMs >= 60000 ? this.tripKm / (this.tripMs / 3600000) : null;
+    }
+
+    /**
+     * Plugged in and charging, worked out from the battery charge (the car's charger unit isn't read): parked (no speed, the
+     * engine off) and the charge rising by CHARGE_MIN_RATE %/min or more over the last minutes. chargeKw (from the battery size
+     * setting) and chargeEta ("1h 20m" to full) follow the same rate, smoothed over the window. A change of state rebuilds a
+     * theme that has a charging view (its "centre" toggles). Needs a few minutes after plugging in before it shows.
+     */
+    _chargeUpdate(now, soc) {
+        const hist = this.hvHist || (this.hvHist = []);
+        if (isNum(soc)) hist.push({ t: now, v: soc });
+        while (hist.length && now - hist[0].t > CHARGE_WINDOW_MS) hist.shift();
+        const d = this.car.data();
+        const still = (!isNum(d.speed) || d.speed <= 1) && (!isNum(d.rpm) || d.rpm < 100);
+        let on = false, kw = null, eta = null;
+        if (d.demo && process.env.KB_CHARGING) { on = true; kw = 7.2; eta = '1h 25m'; }
+        else if (still && hist.length >= 3 && hist[hist.length - 1].t - hist[0].t >= CHARGE_SPAN_MS) {
+            const a = hist[0], b = hist[hist.length - 1];
+            const rate = (b.v - a.v) / ((b.t - a.t) / 60000);                      // % per minute
+            on = rate >= (this.charging ? CHARGE_MIN_RATE / 3 : CHARGE_MIN_RATE);   // stays on until it almost stops
+            if (on) {
+                kw = rate * 60 / 100 * (Number(this.setting('batteryKwh')) || 12);
+                const mins = b.v < 100 ? (100 - b.v) / rate : 0;
+                eta = mins >= 1 ? (mins >= 60 ? Math.floor(mins / 60) + 'h ' : '') + Math.round(mins % 60) + 'm' : '';
+            }
+        }
+        this.chargeKw = kw; this.chargeEta = eta;
+        if (on !== (this.charging === true)) {
+            this.charging = on;
+            this.log.info('charging ' + (on ? 'detected (' + (kw === null ? '?' : kw.toFixed(1)) + ' kW estimated)' : 'stopped'));
+            if (this.chargeLayout) this._rebuild();
+        }
     }
 
     /**
