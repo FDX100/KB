@@ -25,6 +25,8 @@ async function resetCluster(signals, log) {
         log.info('cluster reset: not in this session, asking for the extended session first');
         await ask(0x10, [0x03]);
         uds = await ask(0x11, [0x01]);
+        // refused all the same: back to the default session, as the fault scanner does after its extended-session retry
+        if (uds && uds[0] === 0x7F) await ask(0x10, [0x01]).catch(() => null);
     }
     if (!uds) return { sent: true, answer: 'no answer' };
     if (uds[0] === 0x51) return { sent: true, answer: 'accepted' };
