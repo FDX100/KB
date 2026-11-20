@@ -147,6 +147,7 @@ process.on('message', (m) => {
     } else if (m.t === 'set') press(m.key, m.value);
     else if (m.t === 'drive') drive = m.value;
     else if (m.t === 'shiftTest' && hud) hud.testShift();
+    else if (m.t === 'restartCluster' && hud) log.info('bench: restart cluster ' + (hud.restartCluster() ? 'started' : 'refused'));
     else if (m.t === 'nav') fakeNav.set(m.scenario);
     else if (m.t === 'demo' && hud) { if (m.play) log.info('bench: play demo ' + (hud.playDemo(m.at) ? 'started' : 'refused (' + hud.demoBlocked() + ')')); else hud.stopDemo(); }
 });

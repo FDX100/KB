@@ -18,7 +18,7 @@ const zlib = require('zlib');
 const pics = [];
 fs.writeFileSync(path.join(stage, 'previews.js'), `'use strict';
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
-const dir = ${JSON.stringify(path.join(root, 'apps', 'cluster_themes', 'hud', 'previews'))};
+const dir = ${JSON.stringify(path.join(root, 'apps', 'kurdbimmer_themes', 'hud', 'previews'))};
 const cache = {};
 module.exports = { get(name, size) {
     const k = name + ':' + size;
@@ -38,7 +38,7 @@ const { Canvas } = require(path.join(stage, 'kit', 'canvas'));
 const themes = require(path.join(stage, 'kit', 'themes'));
 const Page = require(path.join(stage, 'page'));
 
-const spec = JSON.parse(fs.readFileSync(path.join(root, 'apps', 'cluster_themes', 'app.json'), 'utf8'));
+const spec = JSON.parse(fs.readFileSync(path.join(root, 'apps', 'kurdbimmer_themes', 'app.json'), 'utf8'));
 const store = {};
 spec.settings.forEach((s) => { store[s.key] = s.default; });
 store.hudLayout = 'apex'; store.units = 'metric'; store.mapInTheme = true;

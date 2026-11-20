@@ -511,6 +511,12 @@ const web = http.createServer(async (req, res) => {
         log('info', 'bench: shift-light test');
         res.writeHead(204); return res.end();
     }
+    if (req.method === 'POST' && url === '/restart-cluster') {
+        // the Settings tab's "Restart cluster" row (hud.restartCluster), for testing without the page's touch screen
+        if (!child) { res.writeHead(409); return res.end('app not running'); }
+        child.send({ t: 'restartCluster' });
+        res.writeHead(204); return res.end();
+    }
     if (req.method === 'POST' && url === '/nav') {
         // a fake route for the HUD's directions (fake-nav.js): turn, roundabout, lanes, then, uturn, off
         const b = await body(req);

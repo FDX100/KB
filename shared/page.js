@@ -692,6 +692,7 @@ class Page {
     settingsTab(cv, bottom) {
         label(cv, CX, 70, 'Settings');
         const keys = this.cfg.settings.filter((k) => this.item(k));
+        if (this.hud.restartCluster) keys.push('@restart');      // an action, not a setting: the last row
         const colW = (CW - 24) / 2, per = Math.ceil(keys.length / 2);
         // issue #8: the drive mode check (raw signal values, only the signals this app listens to: cfg.modeCheck)
         // under the right column while "Change with the drive mode" is on
@@ -704,6 +705,7 @@ class Page {
         keys.forEach((k, i) => {
             const x = CX + (i < per ? 0 : colW + 24), y = 84 + (i % per) * pitch;
             if (y + h > bottom) return;
+            if (k === '@restart') { this.restartRow(cv, x, y, colW, h); return; }
             const s = this.item(k);
             if (s.type === 'bool') this.toggleRow(cv, x, y, colW, s.label, k, h);
             else if (s.type === 'number') this.stepRow(cv, x, y, colW, s.label, k, null, h);
@@ -718,6 +720,20 @@ class Page {
             while (t.length > 8 && cv.textWidth(t, 15, { literal: true }) > colW) t = t.slice(0, -1);
             cv.text(t, CX + colW + 24, dy + 20 * i, 15, C.label, { literal: true });
         });
+    }
+
+    /** "Restart cluster": our layers go for a few seconds (BMW's own cluster shows), then the theme is drawn again. */
+    restartRow(cv, x, y, w, h) {
+        const busy = this.hud.isRestarting && this.hud.isRestarting();
+        const base = this.rowBox(cv, x, y, w, 'Restart cluster', h);
+        const bt = busy ? 'Restarting...' : 'Restart', bw = cv.textWidth(bt, 16, { font: 'bold', literal: true }) + 40, bh = Math.min(36, h - 8);
+        cv.roundRect(x + w - bw - 14, y + (h - bh) / 2, bw, bh, bh / 2, busy ? '#ffffff12' : C.blue);
+        cv.text(bt, x + w - 14 - bw / 2, base - 1, 16, busy ? C.dim : '#ffffff', { align: 'center', font: 'bold', literal: true });
+        if (!busy) {
+            cv.target(x, y, w, h, () => {
+                if (this.hud.restartCluster()) { this.kick(); setTimeout(() => this.kick(), 4500); }
+            }, 'restart:cluster', 14);
+        }
     }
 
     /* ---------- rows ---------- */

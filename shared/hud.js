@@ -342,6 +342,7 @@ const PACK_FORCE_PX = 250000;     // ... but not for more extra pixels than this
 const PACK_SOFT_LAYERS = 24;     // and while the layout has more layers than this, whatever the extra pixels
 const DEFAULT_WASTE = 3;         // a layout without "packWaste": a sheet's box stays within this many times its members' area
 const SHEET_AREA_FRAC = 4;       // the first sheet size limit: 1/4 of the target area (see the header)
+const RESTART_MS = 4000;         // restartCluster: how long our layers stay gone (the service lets go of a closed client's content after about 3 s)
 const TICK_RATES = { smooth: 50, balanced: 80, light: 125 };   // updateRate: 20, 12 or 8 a second
 const TICK_MS = 50;              // 20 Hz: shift bar and gauges
 const TEXT_MS = 200;             // text re-draws at most 5 times a second (what BMW's own readouts do)
@@ -1045,6 +1046,7 @@ class HudApp {
 
     stop() {
         clearTimeout(this.tickTimer);
+        clearTimeout(this.restartT);
         clearInterval(this.themeTimer);
         clearInterval(this.statusTimer);
         clearInterval(this.dmeTimer);
@@ -1263,6 +1265,7 @@ class HudApp {
     }
 
     statusText() {
+        if (this.restarting) return this.label + ': restarting the cluster display';
         if (!this.client.ready) {
             let there = false;
             try { there = fs.existsSync(this.socketPath); } catch (e) { /* treat as missing */ }
@@ -1401,6 +1404,41 @@ class HudApp {
 
     /** Start the shift-light test: the rpm the lights, bars and readouts see climbs to the shift point and holds there
      *  (about 4 s). Only while the car stands (or on demo data). Returns false when it can't run now. */
+    /**
+     * "Restart cluster": every layer of ours is dropped and the connections close, so the display lets go of our content
+     * (BMW's own cluster shows for a few seconds), then the connections open again and the theme is drawn from scratch.
+     * It restarts what we draw, not the car's own display (that takes root; cluster-render does it only on its own
+     * guard's trigger). Frees a theme the display stopped showing, or a stuck layer.
+     */
+    restartCluster() {
+        if (this.restarting || !this.started) return false;
+        this.restarting = true;
+        this.log.info('restart cluster: dropping every layer, back in ' + RESTART_MS / 1000 + ' s');
+        this._guard('restart', () => {
+            this._layerRefs().forEach((r) => r.c.drop(r.ref));
+            this.placed = [];
+            this.widgets.clear();
+            this.sheets = [];
+            this.pixelBytes = 0;
+            this.layerStates.clear();
+            this.stallTimers.forEach((t) => clearTimeout(t)); this.stallTimers.clear();
+            clearTimeout(this.statusAskT); this.statusAskT = null;
+            this.atlases.clear();
+            if (this.gEnvTex) this.gEnvTex.clear();
+            this.clients.forEach((c) => c.close());
+        });
+        this.restartT = setTimeout(() => {
+            this.restartT = null;
+            this.restarting = false;
+            this.log.info('restart cluster: connecting again');
+            this._guard('restart connect', () => this.clients.forEach((c) => c.connect()));
+        }, RESTART_MS);
+        this._status();
+        return true;
+    }
+
+    isRestarting() { return this.restarting === true; }
+
     testShift() {
         const d = this.car.data(), sp = d.speed;
         if (isNum(sp) && sp > 3 && !d.demo) return false;
