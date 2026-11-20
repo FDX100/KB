@@ -44,6 +44,12 @@ const fakeNav = require('./fake-nav').install(hu, log);
 let hud = null;
 const realLoad = Module._load;
 Module._load = function (req) {
+    // BENCH_FAKE_RESET=accepted|refused|silent|error: a stand-in for the cluster unit's answer to "Restart cluster" (kit/cluster-reset.js,
+    // which needs the car's diagnostic link), so the bench can test what the app does after it
+    if (req === './kit/cluster-reset' && process.env.BENCH_FAKE_RESET) {
+        const how = process.env.BENCH_FAKE_RESET;
+        return { KOMBI: 0x60, resetCluster: () => new Promise((resolve, reject) => setTimeout(() => (how === 'error' ? reject(new Error('no diagnostic link')) : resolve({ sent: true, answer: how === 'accepted' ? 'accepted' : how === 'refused' ? 'refused: conditions not correct' : 'no answer' })), 300)) };
+    }
     const m = realLoad.apply(this, arguments);
     if (req === './hud' && typeof m === 'function' && !m.__bench) {
         // the status line: the engine's own (the page shows it on its Settings tab; there is no STATUS row any more)
