@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -1256,11 +1256,15 @@
       "key": "badgeStyle",
       "label": "Badge style",
       "type": "choice",
-      "default": "logo",
+      "default": "both",
       "options": [
         [
+          "both",
+          "Logo beside the text"
+        ],
+        [
           "logo",
-          "Logo (your PNG files, else text)"
+          "Logo only"
         ],
         [
           "text",

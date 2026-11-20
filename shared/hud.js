@@ -3034,6 +3034,34 @@ class HudApp {
             && !(b.toggle && !this._toggleOn(b.toggle))).slice(0, TILE_MAX);
     }
 
+    /**
+     * The badge with its logo beside the name: the logo (as tall as the box, at most half its width), a gap, then the name,
+     * the pair placed by the widget's align. text(w, h, align, offsetY) draws the name.
+     */
+    _badgeBoth(w, name, logo, text) {
+        const img = logo.img, gap = 10;
+        const cell = textRaster.loadFont(w.font).metrics.cellHeight;
+        const tw = Math.min(w.w - 20, Math.ceil(textRaster.measure(name, w.font, w.spacing)) + 2);
+        // no room for the name beside a logo that can still be seen (a narrow spot): the logo alone
+        if (tw + gap + Math.round(img.w * w.h * 0.6 / img.h) > w.w) return pngFit(img, w.w, w.h, w.align);
+        let lh = w.h, lw = Math.round(img.w * lh / img.h);
+        const room = Math.max(20, w.w - gap - tw);
+        if (lw > room) { lw = room; lh = Math.max(1, Math.round(img.h * lw / img.w)); }
+        lh = Math.min(lh, w.h);
+        const total = lw + gap + tw, x0 = w.align === 'left' ? 0 : w.align === 'right' ? Math.max(0, w.w - total) : Math.max(0, Math.round((w.w - total) / 2));
+        const out = Buffer.alloc(w.w * w.h * 4);
+        const put = (src, sw, sh, dx, dy) => {
+            for (let y = 0; y < sh; y++) {
+                if (dy + y < 0 || dy + y >= w.h) continue;
+                const n = Math.min(sw, w.w - dx);
+                if (n > 0) src.copy(out, ((dy + y) * w.w + dx) * 4, y * sw * 4, (y * sw + n) * 4);
+            }
+        };
+        put(pngFit(img, lw, lh, 'center'), lw, lh, x0, Math.round((w.h - lh) / 2));
+        put(text(tw, w.h, 'left', Math.round((w.h - cell) / 2)), tw, w.h, x0 + lw + gap, 0);
+        return out;
+    }
+
     /** A widget's map hole in layer px, inset by "holeInset" (6) a side, while "holeWhen" is on; else no hole. */
     _hole(w) {
         const on = w.holeWhen === true || (w.holeWhen && this.setting(w.holeWhen) === true);   // true: always cut
@@ -3271,15 +3299,21 @@ class HudApp {
             });
             this._blitDiff(x, buf);
         } else if (w.type === 'badgemark') {
-            // the badge: the owner's logo PNG for the model (logos.js) when there is one and "badgeStyle" is Logo, else the model's name as text
+            // the badge: "badgeStyle" Logo + text (the logo beside the name), Logo, or Text. The logo is the owner's PNG for the model
+            // (logos.js); none there, or an empty name: the text alone.
             if (!force && now - x.lastPaint < 1000) return;
-            const model = this.setting('badge'), name = badges.text(model, this.setting('badgeBMW') === true);
-            const logo = this.setting('badgeStyle') === 'text' || !name ? null : this.logos.find(model);
+            const model = this.setting('badge'), name = badges.text(model, this.setting('badgeBMW') === true), style = this.setting('badgeStyle');
+            const logo = style === 'text' || !name ? null : this.logos.find(model);
             const role = w.color || 'dim';
-            const key = logo ? 'L:' + logo.name + ':' + logo.mtime : 'T:' + name + '|' + role;
+            const key = logo ? 'L:' + style + ':' + logo.name + ':' + logo.mtime + ':' + name + '|' + role : 'T:' + name + '|' + role;
             if (!force && key === x.last) return;
             x.last = key; x.lastPaint = now;
-            this._blitDiff(x, logo ? pngFit(logo.img, w.w, w.h, w.align) : textRaster.drawText(w.w, w.h, name, { font: w.font, color: color(this.theme, role), align: w.align, spacing: w.spacing }));
+            const text = (bw, bh, align, offsetY) => textRaster.drawText(bw, bh, name, { font: w.font, color: color(this.theme, role), align, spacing: w.spacing, offsetY: offsetY || 0 });
+            let buf;
+            if (!logo) buf = text(w.w, w.h, w.align);
+            else if (style === 'logo') buf = pngFit(logo.img, w.w, w.h, w.align);
+            else buf = this._badgeBoth(w, name, logo, text);
+            this._blitDiff(x, buf);
         } else if (w.type === 'badge') {
             if (!force && now - x.lastPaint < TEXT_MS) return;
             const s = (w.navHide && this.navShown) || (w.tone === 'demo' && !(this.demo && this.demo.playing())) ? '' : this._resolve(w.text);

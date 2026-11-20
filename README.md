@@ -92,7 +92,7 @@ Transparent PNG, any size up to 4096 px, 8 or 16 bit, not interlaced; it is scal
 ./scripts/logos.sh root@<car-ip> bmw.png m.png i.png alpina.png
 ```
 
-The app looks at the folder every few seconds, so no restart is needed. **Badge style: Text only** turns the logos off. On the bench, put the files in `bench/.data/kurdbimmer_themes/logos/`. The `logos/` folders are git-ignored, so the pictures are never committed. A theme made with `tools/gen_*.py` gets its badge from `tools/badge_spot.py` (one line in each generator): add a spot there for a new theme.
+The app looks at the folder every few seconds, so no restart is needed. **Badge style** picks *Logo beside the text* (the default), *Logo only* or *Text only*; where a theme's spot is too narrow for both, the logo shows alone. `tools/logo_png.sh Mlogo.eps logos/m.png` turns an EPS (or PDF, SVG) you have into the PNG. On the bench, put the files in `bench/.data/kurdbimmer_themes/logos/`. The `logos/` folders are git-ignored, so the pictures are never committed. A theme made with `tools/gen_*.py` gets its badge from `tools/badge_spot.py` (one line in each generator): add a spot there for a new theme.
 
 ## Try it without a car
 
