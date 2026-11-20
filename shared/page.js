@@ -725,13 +725,14 @@ class Page {
     /** "Restart cluster": our layers go for a few seconds (BMW's own cluster shows), then the theme is drawn again. */
     restartRow(cv, x, y, w, h) {
         const busy = this.hud.isRestarting && this.hud.isRestarting();
+        const d = this.hud.car && this.hud.car.data(), moving = !!d && !d.demo && !(d.speed <= 2);      // moving, or the speed is unknown
         const base = this.rowBox(cv, x, y, w, 'Restart cluster', h);
-        const bt = busy ? 'Restarting...' : 'Restart', bw = cv.textWidth(bt, 16, { font: 'bold', literal: true }) + 40, bh = Math.min(36, h - 8);
-        cv.roundRect(x + w - bw - 14, y + (h - bh) / 2, bw, bh, bh / 2, busy ? '#ffffff12' : C.blue);
-        cv.text(bt, x + w - 14 - bw / 2, base - 1, 16, busy ? C.dim : '#ffffff', { align: 'center', font: 'bold', literal: true });
-        if (!busy) {
+        const bt = busy ? 'Restarting...' : moving ? 'Stop the car first' : 'Restart', bw = cv.textWidth(bt, 16, { font: 'bold', literal: true }) + 40, bh = Math.min(36, h - 8);
+        cv.roundRect(x + w - bw - 14, y + (h - bh) / 2, bw, bh, bh / 2, busy || moving ? '#ffffff12' : C.blue);
+        cv.text(bt, x + w - 14 - bw / 2, base - 1, 16, busy || moving ? C.dim : '#ffffff', { align: 'center', font: 'bold', literal: true });
+        if (!busy && !moving) {
             cv.target(x, y, w, h, () => {
-                if (this.hud.restartCluster()) { this.kick(); setTimeout(() => this.kick(), 4500); }
+                if (this.hud.restartCluster()) { this.kick(); setTimeout(() => this.kick(), 5000); setTimeout(() => this.kick(), 25000); }
             }, 'restart:cluster', 14);
         }
     }

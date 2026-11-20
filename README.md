@@ -64,6 +64,7 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Look:** choose the theme, and optionally one per drive mode (Comfort, Sport, Eco Pro).
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
+- **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds. Not yet tried on a car.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).
 
 ## Try it without a car

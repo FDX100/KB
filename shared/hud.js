@@ -344,6 +344,7 @@ const DEFAULT_WASTE = 3;         // a layout without "packWaste": a sheet's box 
 const SHEET_AREA_FRAC = 4;       // the first sheet size limit: 1/4 of the target area (see the header)
 const RECUP_NM = 60;             // engine drag torque (Nm) that stands for full recharging (an estimate)
 const RECUP_G = 0.35;            // braking g that stands for full recharging when there is no torque reading
+const RESET_BACK_MS = 18000;     // restartCluster: how long the cluster unit takes to start again before we draw on it
 const RESTART_MS = 4000;         // restartCluster: how long our layers stay gone (the service lets go of a closed client's content after about 3 s)
 const TICK_RATES = { smooth: 50, balanced: 80, light: 125 };   // updateRate: 20, 12 or 8 a second
 const TICK_MS = 50;              // 20 Hz: shift bar and gauges
@@ -1267,7 +1268,7 @@ class HudApp {
     }
 
     statusText() {
-        if (this.restarting) return this.label + ': restarting the cluster display';
+        if (this.restarting) return this.label + ': restarting the cluster' + (this.restartNote ? ' (' + this.restartNote + ')' : '');
         if (!this.client.ready) {
             let there = false;
             try { there = fs.existsSync(this.socketPath); } catch (e) { /* treat as missing */ }
@@ -1407,15 +1408,19 @@ class HudApp {
     /** Start the shift-light test: the rpm the lights, bars and readouts see climbs to the shift point and holds there
      *  (about 4 s). Only while the car stands (or on demo data). Returns false when it can't run now. */
     /**
-     * "Restart cluster": every layer of ours is dropped and the connections close, so the display lets go of our content
-     * (BMW's own cluster shows for a few seconds), then the connections open again and the theme is drawn from scratch.
-     * It restarts what we draw, not the car's own display (that takes root; cluster-render does it only on its own
-     * guard's trigger). Frees a theme the display stopped showing, or a stuck layer.
+     * "Restart cluster", as BimmerCode restarts it: our layers go (so cluster-render lets go of the display and nothing of ours
+     * is mapped when the cluster restarts), then the cluster's control unit is reset over the head unit's diagnostic link
+     * (kit/cluster-reset.js: UDS ECUReset to 0x60), then, once it is back, the connections open again and the theme is drawn from
+     * scratch. Only while the car stands still: the cluster is dark for several seconds. When the cluster can't be reached
+     * (no diagnostic link), only the drawing restarts. Returns false when it is refused (moving, or already running).
      */
     restartCluster() {
         if (this.restarting || !this.started) return false;
+        const d = this.car.data();
+        if (!d.demo && (!isNum(d.speed) || d.speed > 2)) return false;      // moving, or the speed is unknown
         this.restarting = true;
-        this.log.info('restart cluster: dropping every layer, back in ' + RESTART_MS / 1000 + ' s');
+        this.restartNote = '';
+        this.log.info('restart cluster: dropping every layer, then resetting the cluster unit');
         this._guard('restart', () => {
             this._layerRefs().forEach((r) => r.c.drop(r.ref));
             this.placed = [];
@@ -1429,11 +1434,27 @@ class HudApp {
             if (this.gEnvTex) this.gEnvTex.clear();
             this.clients.forEach((c) => c.close());
         });
+        const back = (ms, note) => {
+            this.restartNote = note;
+            this.restartT = setTimeout(() => {
+                this.restartT = null;
+                this.restarting = false;
+                this.log.info('restart cluster: connecting again');
+                this._guard('restart connect', () => this.clients.forEach((c) => c.connect()));
+                this._status();
+            }, ms);
+        };
         this.restartT = setTimeout(() => {
-            this.restartT = null;
-            this.restarting = false;
-            this.log.info('restart cluster: connecting again');
-            this._guard('restart connect', () => this.clients.forEach((c) => c.connect()));
+            // our layers have been gone for RESTART_MS: the display let go of them. Now the unit.
+            let reset;
+            try { reset = require('./kit/cluster-reset').resetCluster(this.ctx.signals, this.log); } catch (e) { reset = Promise.reject(e); }
+            Promise.resolve(reset).then((r) => {
+                this.log.info('restart cluster: reset sent to the cluster unit (' + r.answer + '), back in ' + RESET_BACK_MS / 1000 + ' s');
+                back(RESET_BACK_MS, 'cluster unit: ' + r.answer);
+            }).catch((e) => {
+                this.log.warn('restart cluster: could not reach the cluster unit (' + (e && e.message || e) + '); only the drawing restarts');
+                back(1000, 'cluster unit not reached');
+            });
         }, RESTART_MS);
         this._status();
         return true;
