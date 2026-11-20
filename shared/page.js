@@ -554,12 +554,12 @@ class Page {
         // the owner's logo PNG for this model (logos.js) when there is one and the style is Logo, else the name as text
         const info = this.hud.logos ? this.hud.logos.describe(model) : { text: '' };
         const style = this.get('badgeStyle'), logo = style !== 'text' && shown ? info.logo : null;
-        if (logo && style === 'logo') cv.blit({ w: rw - 60, h: 70, d: pngFit(logo.img, rw - 60, 70, 'center') }, rx + 30, 102);
+        if (logo && style === 'logo') cv.blit({ w: rw - 120, h: 52, d: pngFit(logo.img, rw - 120, 52, 'center') }, rx + 60, 111);
         else if (logo) {
             // the logo beside the name, as on the cluster
-            const lh = 64, lw = Math.min(Math.round(logo.img.w * lh / logo.img.h), 150), tw = Math.ceil(cv.textWidth(shown, 30, { font: 'bold', literal: true }));
+            const lh = 48, lw = Math.min(Math.round(logo.img.w * lh / logo.img.h), 120), tw = Math.ceil(cv.textWidth(shown, 30, { font: 'bold', literal: true }));
             const x0 = rx + Math.round((rw - lw - 14 - tw) / 2);
-            cv.blit({ w: lw, h: lh, d: pngFit(logo.img, lw, lh, 'center') }, x0, 102);
+            cv.blit({ w: lw, h: lh, d: pngFit(logo.img, lw, lh, 'center') }, x0, 110);
             cv.text(shown, x0 + lw + 14, 148, 30, '#ffffff', { font: 'bold', literal: true });
         } else cv.text(shown || 'No badge', rx + rw / 2, 148, shown ? 34 : 22, shown ? '#ffffff' : C.dim, { align: 'center', font: 'bold', literal: true });
         let y = 204;

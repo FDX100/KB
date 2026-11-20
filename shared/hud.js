@@ -357,6 +357,7 @@ const TARGET_SIZES = { hud: [800, 480], panel: [1920, 720] };
 const MODE_KEY = { comfort: 'inComfort', sport: 'inSport', eco: 'inEco' };
 // a hybrid's powertrain state, from the engine (rpm): a theme of its own for it, on top of the drive mode's ("same": the drive mode's)
 const POWER_KEY = { hybrid: 'inHybrid', electric: 'inElectric' };
+const BADGE_LOGO_SCALE = 0.75;   // a badge logo fills this much of its spot's height (and, alone, of its width), centred
 const POWER_HOLD_MS = 6000, POWER_DWELL_MS = 20000, ENGINE_ON_RPM = 150;
 const TYRE_CORNERS = ['FL', 'FR', 'RL', 'RR'];
 // the HUD's place (the page's Position tab): settings that move / scale the layers already there, no rebuild
@@ -3041,6 +3042,15 @@ class HudApp {
             && !(b.toggle && !this._toggleOn(b.toggle))).slice(0, TILE_MAX);
     }
 
+    /** The logo alone in a badge spot: BADGE_LOGO_SCALE of the box, kept in proportion, placed by the widget's align. */
+    _badgeLogoOnly(w, logo) {
+        const bw = Math.max(1, Math.round(w.w * BADGE_LOGO_SCALE)), bh = Math.max(1, Math.round(w.h * BADGE_LOGO_SCALE));
+        const inner = pngFit(logo.img, bw, bh, w.align), out = Buffer.alloc(w.w * w.h * 4);
+        const dx = w.align === 'left' ? 0 : w.align === 'right' ? w.w - bw : Math.round((w.w - bw) / 2), dy = Math.round((w.h - bh) / 2);
+        for (let y = 0; y < bh; y++) inner.copy(out, ((dy + y) * w.w + dx) * 4, y * bw * 4, (y + 1) * bw * 4);
+        return out;
+    }
+
     /**
      * The badge with its logo beside the name: the logo (as tall as the box, at most half its width), a gap, then the name,
      * the pair placed by the widget's align. text(w, h, align, offsetY) draws the name.
@@ -3050,11 +3060,11 @@ class HudApp {
         const cell = textRaster.loadFont(w.font).metrics.cellHeight;
         const tw = Math.min(w.w - 20, Math.ceil(textRaster.measure(name, w.font, w.spacing)) + 2);
         // no room for the name beside a logo that can still be seen (a narrow spot): the logo alone
-        if (tw + gap + Math.round(img.w * w.h * 0.6 / img.h) > w.w) return pngFit(img, w.w, w.h, w.align);
-        let lh = w.h, lw = Math.round(img.w * lh / img.h);
+        if (tw + gap + Math.round(img.w * w.h * 0.6 / img.h) > w.w) return this._badgeLogoOnly(w, logo);
+        let lh = Math.round(w.h * BADGE_LOGO_SCALE), lw = Math.round(img.w * lh / img.h);
         const room = Math.max(20, w.w - gap - tw);
         if (lw > room) { lw = room; lh = Math.max(1, Math.round(img.h * lw / img.w)); }
-        lh = Math.min(lh, w.h);
+        lh = Math.min(lh, Math.round(w.h * BADGE_LOGO_SCALE));
         const total = lw + gap + tw, x0 = w.align === 'left' ? 0 : w.align === 'right' ? Math.max(0, w.w - total) : Math.max(0, Math.round((w.w - total) / 2));
         const out = Buffer.alloc(w.w * w.h * 4);
         const put = (src, sw, sh, dx, dy) => {
@@ -3340,7 +3350,7 @@ class HudApp {
             const text = (bw, bh, align, offsetY) => textRaster.drawText(bw, bh, name, { font: w.font, color: color(this.theme, role), align, spacing: w.spacing, offsetY: offsetY || 0 });
             let buf;
             if (!logo) buf = text(w.w, w.h, w.align);
-            else if (style === 'logo') buf = pngFit(logo.img, w.w, w.h, w.align);
+            else if (style === 'logo') buf = this._badgeLogoOnly(w, logo);
             else buf = this._badgeBoth(w, name, logo, text);
             this._blitDiff(x, buf);
         } else if (w.type === 'badge') {
