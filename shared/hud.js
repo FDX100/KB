@@ -342,6 +342,8 @@ const PACK_FORCE_PX = 250000;     // ... but not for more extra pixels than this
 const PACK_SOFT_LAYERS = 24;     // and while the layout has more layers than this, whatever the extra pixels
 const DEFAULT_WASTE = 3;         // a layout without "packWaste": a sheet's box stays within this many times its members' area
 const SHEET_AREA_FRAC = 4;       // the first sheet size limit: 1/4 of the target area (see the header)
+const RECUP_NM = 60;             // engine drag torque (Nm) that stands for full recharging (an estimate)
+const RECUP_G = 0.35;            // braking g that stands for full recharging when there is no torque reading
 const RESTART_MS = 4000;         // restartCluster: how long our layers stay gone (the service lets go of a closed client's content after about 3 s)
 const TICK_RATES = { smooth: 50, balanced: 80, light: 125 };   // updateRate: 20, 12 or 8 a second
 const TICK_MS = 50;              // 20 Hz: shift bar and gauges
@@ -1695,6 +1697,7 @@ class HudApp {
             return this.car.data().demo ? 31 : null;
         }
         if (name === 'rpm' && isNum(this.rpmF)) return this.rpmF;
+        if (name === 'recup') return isNum(this.recupPct) ? this.recupPct : null;
         if (name === 'hvSoc') return isNum(this.hvSoc) && Date.now() - this.hvSocAt < HV_STALE_MS ? this.hvSoc : this.car.data().demo ? 64 : null;
         if (name === 'fuel' || name === 'range' || name === 'ambient') {
             // the kit's demo drive has none of these: made-up but steady values while it runs
@@ -1829,6 +1832,7 @@ class HudApp {
             case 'fuelPct': { const v = this._raw('fuel'); return isNum(v) ? String(Math.round(v * 100)) : '--'; }
             case 'ambientN': { const v = this._raw('ambient'); return isNum(v) ? String(Math.round(us ? v * 9 / 5 + 32 : v)) : '--'; }
             case 'torque': { const v = this._raw('torque'); return fix(isNum(v) ? (us ? v * 0.737562 : v) : v, 0); }
+            case 'recup': { const v = this._raw('recup'); return isNum(v) ? String(Math.round(v)) : '--'; }
             case 'torquePct': case 'powerPct': { const v = this._raw(tok); return isNum(v) ? String(Math.min(100, Math.round(v))) : '--'; }
             case 'boostHi': return us ? '20' : '1.4';
             case 'boostMid': return us ? '10' : '0.7';
@@ -3084,6 +3088,7 @@ class HudApp {
     _tick() {
         const now = Date.now();
         this._smoothRpm(now);
+        this._recupTick(now);
         this._cueTick(now);
         if (now - (this.bumpAt || 0) >= 1000) { this.bumpAt = now; smartTemps.bumpTick(this); }
         // the 0-60 timer only on the car's own data (the demo drive would set a best time)
@@ -3115,6 +3120,24 @@ class HudApp {
     _avgSpeed() {
         if (this.car.data().demo) return 54;
         return this.tripMs >= 60000 ? this.tripKm / (this.tripMs / 3600000) : null;
+    }
+
+    /**
+     * Recharging a mild hybrid's 48 V battery, estimated 0..100 (the car sends no charge current we can read): it recovers
+     * while the engine drags on the overrun and under braking, so the engine's negative crankshaft torque (full at
+     * RECUP_NM) stands for it, else the braking g (full at RECUP_G) while moving. Smoothed over about 0.4 s. Nothing
+     * (null) while neither is known.
+     */
+    _recupTick(now) {
+        const d = this.car.data();
+        let target = null;
+        if (d.demo) target = Math.max(0, Math.sin(now / 2600)) * 75;
+        else if (isNum(d.torqueRaw)) target = d.torqueRaw < 0 ? Math.min(100, -d.torqueRaw / RECUP_NM * 100) : 0;
+        else if (isNum(d.gLong) && isNum(d.speed)) target = d.speed > 3 && d.gLong < -0.03 ? Math.min(100, -d.gLong / RECUP_G * 100) : 0;
+        const dt = this.recupT ? Math.min(500, now - this.recupT) : 0;
+        this.recupT = now;
+        if (!isNum(target)) { this.recupPct = null; return; }
+        this.recupPct = isNum(this.recupPct) ? this.recupPct + (target - this.recupPct) * (1 - Math.exp(-dt / 400)) : target;
     }
 
     /** BMW-like tach: a 120 ms filter, and a readout that moves in 50 rpm steps, only by 40 rpm or more. */

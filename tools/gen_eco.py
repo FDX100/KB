@@ -80,6 +80,11 @@ W.append(arc('pow_eco', RC, R, RSTART, -P0, 30, 'powerPct', 0, 60, 'cy', 3))
 W.append(arc('pow_mid', RC, R, RSTART - P0, -(P1 - P0), 30, 'powerPct', 60, 85, 'amber', 3))
 W.append(arc('pow_hi', RC, R, RSTART - P1, -(SWEEP - P1), 30, 'powerPct', 85, 100, 'hot', 3))
 W.append(arc('fuel_arc', RC, R - 56, RSTART, -SWEEP * 0.6, 4, 'fuel', 0, 1, 'amber', 3, z=2))
+# mild hybrid: the charge sector in the ring's gap, from the zero point the other way, lit by the estimated recharging (hud _recupTick)
+CHG = 62.0
+W.append(arc('chg_trk', RC, R, RSTART, CHG, 30, None, 0, 1, 'dim', 3, z=1))
+W.append(arc('chg_arc', RC, R, RSTART, CHG, 30, 'recup', 0, 100, 'green', 3))
+W.append(text('chg_lbl', pos(RC, R + 100, RSTART + CHG * 0.5), 110, 'e_head', 'CHARGE', 'green', 'center', 3, spacing=2))
 for v in (0, 25, 50, 75, 100):
     p = pos(RC, R + 52, RSTART - SWEEP * v / 100.0)
     W.append(text('pow%d' % v, p, 80, 'e_lab', str(v), 'dim', 'center', 3))

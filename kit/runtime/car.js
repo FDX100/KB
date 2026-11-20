@@ -152,7 +152,7 @@ class Car {
         }
         if (groups.includes('condition')) add('de.bmw.infrastructure.VehicleCondition', 'VehicleCondition', (v) => put('condition', conditionOf(v && v.statusConditionVehicle)));
         // negative torque (engine braking while the rpm falls) counts as 0
-        if (groups.includes('torque')) add('de.bmw.infotainment.drivingexcitement.FES', 'statusActualValueTorque2', (v) => { const tq = sc('torque', v.actualValueTorqueCrankshaft); put('torque', tq === null ? null : Math.max(0, tq)); });
+        if (groups.includes('torque')) add('de.bmw.infotainment.drivingexcitement.FES', 'statusActualValueTorque2', (v) => { const tq = sc('torque', v.actualValueTorqueCrankshaft); put('torque', tq === null ? null : Math.max(0, tq)); put('torqueRaw', tq); });
         // extra[iface].$pollMs: re-read that interface's fields that often (signals.js), for fields the car never notifies
         const pollMs = {};
         Object.keys(extra || {}).forEach((iface) => Object.keys(extra[iface]).forEach((f) => { if (f === '$pollMs') pollMs[iface] = extra[iface][f]; else add(iface, f, extra[iface][f]); }));
