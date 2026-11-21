@@ -61,10 +61,12 @@ RED_D, ORA_D, GRN_D = [96, 24, 20, 255], [104, 66, 16, 255], [26, 84, 38, 255]  
 
 W = []
 # ---- the panels: the speed window, the small-digits window, the button pills (one layer; black everywhere else covers BMW's gauges)
+UP = 16            # the speed window sits this much higher than the photo's: off the small digits under it, still under the rev numbers
+UP_ODO = 0         # the small-digits window stays where the photo has it
 PILL_H = round(K * 44)
 panels = [
-    {'id': 'speed_win', 'x': X(432), 'y': Y(178), 'w': round(K * 176), 'h': round(K * 69), 'head': 0, 'radius': 16, 'border': 2},
-    {'id': 'odo_win', 'x': X(432), 'y': Y(253), 'w': round(K * 180), 'h': round(K * 39), 'head': 0, 'radius': 14, 'border': 2},
+    {'id': 'speed_win', 'x': X(432), 'y': Y(178) - UP, 'w': round(K * 176), 'h': round(K * 69), 'head': 0, 'radius': 16, 'border': 2},
+    {'id': 'odo_win', 'x': X(432), 'y': Y(253) - UP_ODO, 'w': round(K * 180), 'h': round(K * 39), 'head': 0, 'radius': 14, 'border': 2},
     {'id': 'pill_l', 'x': 24, 'y': Y(298), 'w': 204, 'h': PILL_H, 'head': 0, 'radius': PILL_H // 2, 'border': 2},
     {'id': 'pill_r', 'x': 1692, 'y': Y(303), 'w': 204, 'h': PILL_H, 'head': 0, 'radius': PILL_H // 2, 'border': 2},
 ]
@@ -81,18 +83,18 @@ for n, (px, py) in enumerate(NUM):
 W.append(text('x1000', X(278), Y(223), 340, 'x_lab', 'x1000r/min', WHITE, 'left'))
 # ---- the speed: unlit ghost 8s under the lit digits, the unit beside it
 SX = X(595)
-W.append(text('speed_ghost', SX, Y(213), 380, 'x_speed', '888', GHOST, 'right'))
-W.append(text('speed', SX, Y(213), 380, 'x_speed', '{{speed}}', WHITE, 'right'))
-W.append(text('mph_on', X(618), Y(225), 130, 'x_unit', 'mph', WHITE, 'left', toggle='units=us'))
-W.append(text('mph_off', X(618), Y(225), 130, 'x_unit', 'mph', [96, 100, 98, 255], 'left', toggle='!units=us'))
-W.append(text('kmh_on', X(618), Y(244), 140, 'x_unit', 'km/h', WHITE, 'left', toggle='!units=us'))
-W.append(text('kmh_off', X(618), Y(244), 140, 'x_unit', 'km/h', [40, 74, 44, 255], 'left', toggle='units=us'))
+W.append(text('speed_ghost', SX, Y(213) - UP, 380, 'x_speed', '888', GHOST, 'right'))
+W.append(text('speed', SX, Y(213) - UP, 380, 'x_speed', '{{speed}}', WHITE, 'right'))
+W.append(text('mph_on', X(618), Y(225) - UP, 130, 'x_unit', 'mph', WHITE, 'left', toggle='units=us'))
+W.append(text('mph_off', X(618), Y(225) - UP, 130, 'x_unit', 'mph', [96, 100, 98, 255], 'left', toggle='!units=us'))
+W.append(text('kmh_on', X(618), Y(244) - UP, 140, 'x_unit', 'km/h', WHITE, 'left', toggle='!units=us'))
+W.append(text('kmh_off', X(618), Y(244) - UP, 140, 'x_unit', 'km/h', [40, 74, 44, 255], 'left', toggle='units=us'))
 # ---- the small digits: the range and the trip
-W.append(text('odo_ghost', X(526), Y(278), 260, 'x_odo', '888888', GHOST, 'right', spacing=-5))
-W.append(text('odo', X(526), Y(278), 260, 'x_odo', '{{range}}', WHITE, 'right', spacing=-5))
-W.append(text('trip_ghost', X(608), Y(278), 180, 'x_odo', '888.8', GHOST, 'right', spacing=-5))
-W.append(text('trip', X(608), Y(278), 180, 'x_odo', '{{tripDist}}', WHITE, 'right', spacing=-5))
-W.append(text('trip_lbl', X(608), Y(259), 180, 'x_lab', 'TRIP', WHITE, 'right'))
+W.append(text('odo_ghost', X(526), Y(278) - UP_ODO, 260, 'x_odo', '888888', GHOST, 'right', spacing=-5))
+W.append(text('odo', X(526), Y(278) - UP_ODO, 260, 'x_odo', '{{range}}', WHITE, 'right', spacing=-5))
+W.append(text('trip_ghost', X(608), Y(278) - UP_ODO, 180, 'x_odo', '888.8', GHOST, 'right', spacing=-5))
+W.append(text('trip', X(608), Y(278) - UP_ODO, 180, 'x_odo', '{{tripDist}}', WHITE, 'right', spacing=-5))
+W.append(text('trip_lbl', X(608), Y(259) - UP_ODO, 180, 'x_lab', 'TRIP', WHITE, 'right'))
 # ---- the coolant bar (C .. H) on the left, the fuel bar (E .. F) on the right, set lower than in the photo (DY px) so they leave the dial clear
 DY = 72
 W.append(icon('therm', 'therm', X(207), Y(215) + DY, 46, WHITE))
