@@ -210,16 +210,6 @@ const THEMES = {
         bg: [0, 0, 0, 255], panel: [24, 25, 24, 255], line: [52, 54, 52, 255], head: [92, 224, 44, 255],
         ink: [10, 10, 10, 255], accent: [92, 224, 44, 255], well: [0, 0, 0, 255],
     },
-    // Live Hybrid (layout livehyb.json): a plug-in hybrid Live Cockpit, white outlined chevron scales, red needle, cyan electric.
-    livehyb: {
-        name: 'Live Hybrid',
-        fg: [236, 238, 240, 255], dim: [150, 154, 158, 255], track: [60, 64, 70, 255], arc: [24, 208, 232, 255],
-        glow: 0, stripe: false,
-        bar: { low: [24, 208, 232], mid: [236, 200, 40], high: [230, 50, 44], midAt: 'shift' },
-        rev: { from: [24, 208, 232], to: [230, 50, 44] },
-        bg: [0, 0, 0, 255], panel: [40, 42, 46, 255], line: [236, 238, 240, 255], head: [24, 208, 232, 255],
-        ink: [10, 10, 10, 255], accent: [24, 208, 232, 255], well: [0, 0, 0, 255],
-    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });
