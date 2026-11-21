@@ -7,7 +7,7 @@ Seventeen full-screen instrument cluster themes for BMW iDrive 7 (MGU), with a K
 Made by <a href="https://github.com/FDX100">FDX100</a>.
 </p>
 
-> **Status: not yet tried on a real car.** Every theme was drawn and checked in the bench simulator in this repository. Layer and GPU limits on the head unit are unverified. Install at your own risk, as with any non-BMW app on a head unit.
+> **Tested on a BMW G20 with iDrive 7 (ID7).** The themes were run on that car and checked in the bench simulator in this repository. Other models with an iDrive 7 head unit should work the same way, but they are not tested. Newer features (the charging view, the hybrid battery read, Restart cluster, the badge logos) are still to be confirmed on more cars, so tell me what you see. Install at your own risk, as with any non-BMW app on a head unit.
 
 ## What you get
 
@@ -40,9 +40,10 @@ You need a BMW iDrive 7 head unit with the [MGU Store](https://github.com/robert
 
 ### From GitHub (online)
 
-1. In the MGU Store open **Settings, Add source** and enter `FDX100/KurdBimmer`.
-2. Install **KurdBimmer Themes**. The Store builds it on the car from this repository (`mgu-repo.json`).
-3. Open **KurdBimmer Themes** from the apps menu on the center screen and pick a theme on the Themes tab.
+1. In the MGU Store open **Settings → Add source** and type **`FDX100/KB`** (or the link `https://github.com/FDX100/KB`). When it asks what to follow, pick the **main** branch.
+2. Install **cluster-render** first if it is not on the car yet (from [robertnisipeanu/idrive-apps](https://github.com/robertnisipeanu/idrive-apps)).
+3. Install **KurdBimmer Themes**. The Store builds it on the car from this repository (`mgu-repo.json`), and updates it when the version in `app.json` goes up.
+4. Open **KurdBimmer Themes** from the apps menu on the center screen and pick a theme on the Themes tab.
 
 ### From a USB stick (offline)
 
@@ -50,9 +51,9 @@ On a computer with Node 18 or newer, using the Store's installer:
 
 ```sh
 git clone https://github.com/robertnisipeanu/mgu-store
-git clone https://github.com/FDX100/KurdBimmer
+git clone https://github.com/FDX100/KB
 cd mgu-store
-node deploy/mgu-install.js usb-repo <stick> ../KurdBimmer
+node deploy/mgu-install.js usb-repo <stick> ../KB
 # optional: put cluster-render on the same stick
 node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 ```
