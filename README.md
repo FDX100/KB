@@ -7,7 +7,7 @@ Seventeen full-screen instrument cluster themes for BMW iDrive 7 (MGU), with a K
 Made by <a href="https://github.com/FDX100">FDX100</a>.
 </p>
 
-> **Tested on a BMW G20 with iDrive 7 (ID7).** The themes were run on that car and checked in the bench simulator in this repository. Other models with an iDrive 7 head unit should work the same way, but they are not tested. Newer features (the charging view, the hybrid battery read, Restart cluster, the badge logos) are still to be confirmed on more cars, so tell me what you see. Install at your own risk, as with any non-BMW app on a head unit.
+> **Every theme and feature here is tested on a BMW G20 with iDrive 7 (ID7)**, by the author, on his own car. Other models with an iDrive 7 head unit should work the same way, but they are not tested. Install at your own risk, as with any non-BMW app on a head unit.
 
 ## What you get
 
@@ -66,9 +66,9 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Hybrid and electric cars:** with "Change with the drive mode" on, the Themes tab also has **Hybrid** (engine running) and **Electric** (engine off) cells: pick a theme for each, or leave "Same" to follow the drive mode. The state comes from the engine speed, has to hold for 6 seconds, and the theme changes at most every 20 seconds, so a hybrid starting and stopping its engine in traffic does not keep redrawing the cluster. On a car without a hybrid system, leave both on Same.
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
-- **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab. Not yet tried on a car.
+- **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab.
 - **Badges and logos:** every theme shows your model badge, as text or as your own logo PNG (see Badges and logos below).
-- **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds. Not yet tried on a car.
+- **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).
 
 ## Badges and logos
