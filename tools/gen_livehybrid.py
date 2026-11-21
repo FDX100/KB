@@ -97,8 +97,8 @@ def inner(pts, d, toward):
 
 
 MID = (1060, 600)
-li = inner(L_OUT, 15, MID)
-ri = inner(R_OUT, 15, MID)
+li = inner(L_OUT, 80, MID)
+ri = inner(R_OUT, 72, MID)
 # the grey panels: the inside of each outline, closed along the middle display's edge
 PANEL_L = li[1:] + [(790, 778), (716, 612), (760, 500), (830, 415), (905, 395)]
 PANEL_R = ri[1:] + [(1560, 790), (1372, 772), (1385, 690), (1392, 600), (1350, 500), (1300, 425), (1262, 392)]
@@ -117,7 +117,7 @@ def bake_panels(name):
     im = im.resize((960, 330), Image.LANCZOS)
     import numpy as np
     yy, xx = np.mgrid[0:330, 0:960].astype(float)
-    shade = 1.0 - 0.38 * (yy / 330.0) - 0.12 * np.abs(xx - 480) / 480          # lighter at the top, like the photo's glossy panels
+    shade = 0.95 - 0.40 * (yy / 330.0)          # lighter at the top, like the photo's glossy panels
     raw = bytes(np.round(np.asarray(im, dtype=float) * shade).astype(np.uint8).tobytes())
     with open(os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'art', name + '.json'), 'w') as f:
         json.dump({'w': 960, 'h': 330, 'z': base64.b64encode(zlib.compress(raw, 9)).decode()}, f)
@@ -186,6 +186,19 @@ def bake_lines():
     import numpy as np
     k = 3
     im, dr, k = canvas(1920, 660, k)
+    lead, ldr, _ = canvas(1920, 660, k)
+
+    def lwedge(root, d, length, w0):
+        """A leader that fades out towards its tip (slices, bright to faint), on its own picture."""
+        (x, y) = L(*root)
+        nx, ny = -d[1], d[0]
+        n = 10
+        for i in range(n):
+            a, b = i / n, (i + 1) / n
+            wa, wb = w0 * (1 - 0.7 * a), w0 * (1 - 0.7 * b)
+            P = [((x + d[0] * length * a + nx * wa / 2) * k, (y + d[1] * length * a + ny * wa / 2) * k), ((x + d[0] * length * b + nx * wb / 2) * k, (y + d[1] * length * b + ny * wb / 2) * k),
+                 ((x + d[0] * length * b - nx * wb / 2) * k, (y + d[1] * length * b - ny * wb / 2) * k), ((x + d[0] * length * a - nx * wa / 2) * k, (y + d[1] * length * a - ny * wa / 2) * k)]
+            ldr.polygon(P, fill=int(255 * (1 - 0.6 * a)))
 
     def pl(pts, w):
         pp = [(x * k, y * k) for x, y in (L(*q) for q in pts)]
@@ -222,7 +235,8 @@ def bake_lines():
             ln = math.hypot(fx, fy); d = (fx / ln, fy / ln)           # the leaders are rays from a point inside the dial
             num = nums.get(marks[i][0] if focus[0] > 1000 else i)
             reach = (math.hypot(num[0] - root[0], num[1] - root[1]) - 34) if num else 40
-            wedge(root, d, max(30, reach) * S, 5.0, 1.8)
+            if i > 0:
+                lwedge(root, d, max(30, reach) * S, 9.5)
             if i + 1 < len(pts):                                   # the small ticks between two marks, on the outline
                 q = ((root[0] + pts[i + 1][0]) / 2, (root[1] + pts[i + 1][1]) / 2)
                 q = min(path, key=lambda a: math.hypot(a[0] - q[0], a[1] - q[1]))
@@ -244,13 +258,15 @@ def bake_lines():
     pl(sm, 3.4)
     pl(smooth(inner(B_OUT[:8], 6, (1730, 760)), 8), 1.4)
     pl([(1776, 675.5), (1788.1, 676.2)], 3.0)
+    for pts, width in FUEL_LINES:                                  # the fuel gauge's own lines
+        pl(pts, width)
     # the left corner of the screen: the tail of the scale's chevron is part of the outline already
-    arr = np.asarray(im.resize((1920, 660), __import__('PIL.Image', fromlist=['Image']).LANCZOS), dtype=np.uint8)
-    put_art('livehyb', arr)
     from PIL import Image, ImageFilter
-    halo = Image.fromarray(arr).resize((960, 330), Image.LANCZOS).filter(ImageFilter.GaussianBlur(3.2))
-    put_art('livehyb_halo', np.minimum(255, np.asarray(halo, dtype=float) * 2.2).astype(np.uint8))
-
+    lines = im.resize((1920, 660), Image.LANCZOS)
+    lead_img = lead.resize((1920, 660), Image.LANCZOS)
+    halo = lines.filter(ImageFilter.GaussianBlur(4.0))
+    arr = np.maximum.reduce([np.asarray(lines, dtype=float), np.asarray(lead_img, dtype=float) * 0.86, np.minimum(255, np.asarray(halo, dtype=float) * 2.4) * 0.30])
+    put_art('livehyb', np.round(np.clip(arr, 0, 255)).astype(np.uint8))
 
 def bake_centre():
     """The middle display (with and without the Waze window cut out) and the red glows at the feet of the panels, as 960 x 330 fills."""
@@ -258,31 +274,36 @@ def bake_centre():
     from PIL import ImageFilter
     pts = [L(*q) for q in smooth(CENTER, 8, True)]
     for name, hole in (('lh_mid', False), ('lh_mid_hole', True)):
-        im, dr, k = canvas(960, 330)
-        dr.polygon([(x / 2 * k, y / 2 * k) for x, y in pts], fill=255)
+        im, dr, k = canvas(480, 165)
+        dr.polygon([(x / 4 * k, y / 4 * k) for x, y in pts], fill=255)
+        for pp in (PANEL_L, PANEL_R):                                       # the panels are drawn over this: keep their area clear
+            dr.polygon([(x / 4 * k, y / 4 * k) for x, y in (L(*q) for q in pp)], fill=0)
         if hole:
-            dr.rounded_rectangle([668 / 2 * k, 128 / 2 * k, (668 + 628) / 2 * k, (128 + 436) / 2 * k], radius=56 / 2 * k, fill=0)
-        cov = finish(im, 960, 330).astype(float) / 255
-        yy, xx = np.mgrid[0:330, 0:960].astype(float)
-        glow = np.clip(1 - np.hypot((xx - 480) / 400, (yy - 175) / 180), 0, 1)           # lighter towards the middle, like the photo's display
-        put_art(name, np.round(cov * (0.30 + 0.70 * glow) * 255).astype(np.uint8))
+            dr.rounded_rectangle([668 / 4 * k, 128 / 4 * k, (668 + 628) / 4 * k, (128 + 436) / 4 * k], radius=56 / 4 * k, fill=0)
+        cov = finish(im, 480, 165).astype(float) / 255
+        yy, xx = np.mgrid[0:165, 0:480].astype(float)
+        glow = np.clip(1 - np.hypot((xx - 240) / 200, (yy - 88) / 90), 0, 1)           # lighter towards the middle, like the photo's display
+        put_art(name, np.round(cov * (0.10 + 0.55 * glow) * 255).astype(np.uint8))
 
 
 def bake_glows():
-    """The red glows at the feet of the panels, with the photo's fine grid, as two full-size R8 pictures; returns their boxes."""
+    """The red glows at the feet of the panels, with the photo's fine grid, as one full-size R8 strip across the screen; returns its box."""
     import numpy as np
-    boxes = {}
-    for name, (x0, y0, x1, y1) in (('glow_l', (548, 736, 720, 788)), ('glow_r', (1400, 726, 1590, 794))):
-        (ax, ay), (bx, by) = L(x0, y0), L(x1, y1)
-        ax, ay, bx, by = int(ax), int(ay), int(bx) + 1, int(by) + 1
-        w, h = bx - ax, by - ay
-        yy, xx = np.mgrid[0:h, 0:w].astype(float)
-        u = yy / max(1, h - 1)
-        a = 0.95 * np.clip(u, 0, 1) ** 1.3 * np.clip(np.minimum(xx, w - 1 - xx) / 40.0, 0, 1) ** 1.5
-        grid = 1.0 - 0.42 * (((xx % 5) < 1.3) | ((yy % 5) < 1.3))
-        put_art('lh_' + name, np.round(np.clip(a * grid, 0, 1) * 255).astype(np.uint8))
-        boxes[name] = (ax, ay, w, h)
-    return boxes
+    (ax, ay), (bx, by) = L(548, 730), L(1590, 794)
+    ax, ay, bx, by = int(ax), int(ay), int(bx) + 1, int(by) + 1
+    w, h = bx - ax, by - ay
+    yy, xx = np.mgrid[0:h, 0:w].astype(float)
+    a = np.zeros((h, w))
+    for x0, x1, y0, y1 in ((548, 720, 736, 788), (1400, 1590, 726, 794)):
+        (lx, ly), (rx, ry) = L(x0, y0), L(x1, y1)
+        lx, ly, rx, ry = lx - ax, ly - ay, rx - ax, ry - ay
+        u = np.clip((yy - ly) / max(1, ry - ly), 0, 1)
+        inside = (xx >= lx) & (xx <= rx) & (yy >= ly) & (yy <= ry)
+        edge = np.clip(np.minimum(xx - lx, rx - xx) / 40.0, 0, 1) ** 1.5
+        a = np.maximum(a, np.where(inside, u ** 0.9 * edge, 0))
+    grid = 1.0 - 0.42 * (((xx % 5) < 1.3) | ((yy % 5) < 1.3))
+    put_art('lh_glow', np.round(np.clip(a * grid, 0, 1) * 255).astype(np.uint8))
+    return {'glow': (ax, ay, w, h)}
 
 
 def gauge_masks():
@@ -339,38 +360,34 @@ def gauge_masks():
         put_art('lh_' + name, cov)
         put_art('lh_' + name + '_t', np.round(t * 255).astype(np.uint8))
         out[name] = (x0, y0, w, h)
-    # the fuel gauge's own white lines (the photo's are blanked out of the baked art): the outer double line and the thin inner one
-    lp = lambda pts: [L(*q) for q in pts]
-    x0, y0, w, h = out['fuel']
-    im, dr, k = canvas(w, h, 4)
-    for pts, width in ((smooth(f_o, 8), 2.6), (smooth(inner(f_o, 3.8, (467, 660)), 8), 1.6), (smooth(f_i, 8), 1.6)):
-        dr.line([((x - x0) * k, (y - y0) * k) for x, y in lp(pts)], fill=255, width=int(width * k), joint='curve')
-    put_art('lh_fuel_lines', finish(im, w, h))
+    # the fuel gauge's own white lines: the outer double line and the thin inner one (drawn into the main line art)
+    global FUEL_LINES
+    FUEL_LINES = [(smooth(f_o, 8), 2.8), (smooth(inner(f_o, 3.8, (467, 660)), 8), 1.7), (smooth(f_i, 8), 1.7)]
     return out
 
 
 def gauges():
-    box = gauge_masks()
+    box = GAUGE_BOXES
     spec = (('power', 'powerPct', 0, 100, 'accent', [96, 98, 106, 255]), ('batt', 'hvSoc', 0, 100, 'accent', [58, 62, 68, 255]),
             ('fuel', 'fuel', 0, 1, [236, 238, 240, 255], [74, 76, 80, 255]))
     return [{'id': n + '_gauge', 'type': 'gaugemask', 'class': 'content', 'z': 2, 'x': box[n][0], 'y': box[n][1], 'w': box[n][2], 'h': box[n][3], 'conn': 2,
-             'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec] + [
-        {'id': 'fuel_lines', 'type': 'artmask', 'class': 'content', 'z': 3, 'x': box['fuel'][0], 'y': box['fuel'][1], 'w': box['fuel'][2], 'h': box['fuel'][3], 'conn': 2, 'art': 'lh_fuel_lines', 'color': WHITE}]
+             'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec] 
 
 
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg'}]
 HOLE = {'hole': [668, 128, 628, 436], 'holeWhen': 'mapUp', 'holeInset': 0, 'holeRadius': 56}
 # the grey panels (one layer: a polygon each) and, over them, the middle display and the red glows (a second layer)
-PANEL = [74, 79, 88, 255]
+PANEL = [64, 67, 74, 255]
+FUEL_LINES = []
+GAUGE_BOXES = gauge_masks()
 bake_centre()
 GLOWS = bake_glows()
-W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid', 'color': [70, 78, 90, 255], 'toggle': '!mapUp'})
-W.append({'id': 'middle_map', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid_hole', 'color': [70, 78, 90, 255], 'toggle': 'mapUp'})
+W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid', 'color': [74, 82, 94, 255], 'toggle': '!mapUp'})
+W.append({'id': 'middle_map', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid_hole', 'color': [74, 82, 94, 255], 'toggle': 'mapUp'})
 W.append({'id': 'panels', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'livehyb_panel', 'color': PANEL})
 for gid, (gx, gy, gw, gh) in GLOWS.items():
     W.append({'id': gid, 'type': 'artmask', 'class': 'content', 'z': 1, 'x': gx, 'y': gy, 'w': gw, 'h': gh, 'conn': 2, 'art': 'lh_' + gid, 'color': [238, 36, 40, 255]})
 # the white line art baked from the photo
-W.append({'id': 'art_halo', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb_halo', 'color': [170, 196, 255, 70]})
 W.append({'id': 'art', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb', 'color': WHITE})
 # ---- the scale numbers
 SPEED = [(0, (657, 782)), (30, (570, 784)), (60, (514, 726)), (90, (466, 654)), (120, (437, 582)), (150, (476, 514)), (180, (536, 464)),
@@ -395,7 +412,7 @@ W.append(text('evmode', (765, 526), 340, 'h_mode', '{{evmode}}', CYAN, 'center')
 W.append(text('mode', (668, 553), 260, 'h_mode2', '{{mode}}', WHITE, 'left'))
 W.append(icon('drive_icon', 'gauge', (636, 546), 46, WHITE))
 W.append(text('speed', (770, 632), 220, 'm_speed', '{{speed}}', WHITE, 'center'))
-W.append(text('speed_u', (818, 608), 100, 'h_small', '{{u:speedLc}}', WHITE, 'left'))
+W.append(text('speed_u', (818, 608), 100, 'h_unit', '{{u:speedLc}}', WHITE, 'left'))
 # ---- the power meter and the electric range
 W.extend(gauges())
 for v, p in ((60, (1409, 471)), (40, (1454, 533)), (20, (1475, 595)), (0, (1432, 660))):
