@@ -3,8 +3,7 @@
 Professional in a plug-in hybrid (3.jpeg): two white outlined chevron scales (the speed 0..330 km/h on the left, the revs 0..8 on the
 right) with a red needle at the value, grey panels inside them with the red glow at the foot, the big speed, the drive mode with
 ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery gauge, the fuel gauge, READY, and the dark middle
-display where the Waze map opens. The white lines are baked from the photo (tools/livehybrid/bake_mask.py -> hud/art/livehyb.json,
-drawn by the ARTMASK shader); the rest is drawn live. Photo px -> layout px: x' = 960 + (x - 1060) * S, y' = (y - 322) * S.
+display where the Waze map opens. The white line art is drawn here from geometry (bake_lines -> hud/art/livehyb.json, shown by the ARTMASK shader); the rest is drawn live. Photo px -> layout px: x' = 960 + (x - 1060) * S, y' = (y - 322) * S.
 Edit this and regenerate; do not hand-edit the JSON."""
 import json, math, os, sys
 
@@ -68,12 +67,19 @@ WHITE = [236, 238, 240, 255]
 CYAN = [24, 208, 232, 255]
 DIM = [150, 154, 158, 255]
 
-# ---- the outlines (photo px, snapped onto the photo's lines by tools/livehybrid/snap.py)
+# ---- the outlines (photo px, measured off the photo once; every line below is drawn from these numbers)
 L_OUT = [[876.8, 343.0], [845.0, 339.0], [770.2, 344.0], [700.5, 358.0], [619.0, 362.1], [578.4, 371.3], [528.4, 394.9], [488.9, 420.3], [455.0, 447.0], [420.0, 475.0],
          [394.3, 501.3], [370.0, 530.0], [355.8, 561.2], [355.0, 600.0], [360.0, 637.0], [380.6, 677.3], [403.9, 705.4], [429.2, 745.6], [460.0, 785.0], [490.0, 815.0], [521.7, 832.5]]
 R_OUT = [[1286.7, 343.0], [1344.8, 343.0], [1429.6, 351.0], [1504.2, 361.9], [1548.9, 369.9], [1593.4, 385.1], [1629.4, 407.8], [1662.3, 432.4], [1697.3, 462.3], [1725.0, 490.0],
          [1750.0, 520.0], [1767.0, 555.0], [1769.0, 580.6], [1765.1, 603.8], [1756.4, 637.3], [1753.1, 676.6], [1723.5, 705.4], [1695.8, 741.4], [1672.2, 772.2], [1650.0, 795.0],
          [1629.3, 810.7], [1604.1, 817.1]]
+
+
+POWER_O = [(1463.2, 474.2), (1480.6, 495.1), (1496.8, 514.8), (1510.6, 533.4), (1520.4, 551.8), (1524.8, 570.8), (1522.7, 591.5), (1514.3, 614.9), (1500.7, 642.4), (1484.1, 673.3)]
+B_OUT = [(1788.1, 676.2), (1797.4, 693.4), (1803.7, 713.0), (1805.0, 734.9), (1800.9, 757.2), (1792.1, 778.5), (1779.3, 798.1), (1762.9, 815.1), (1743.6, 827.0), (1722.5, 832.5), (1700.6, 833.1)]
+F_O = [(306.8, 677.0), (295.6, 695.4), (290.6, 715.6), (293.7, 737.6), (303.5, 759.9), (318.6, 781.8), (338.3, 801.5), (361.4, 817.8), (386.0, 830.1), (410.6, 837.9), (435.0, 842.0)]
+LEFT_BOTTOM = [(521.7, 832.5), (545, 835.5), (600, 837.5), (700, 837), (790, 836.5), (873, 834), (895, 824), (913, 814), (950, 811), (997, 810)]
+RIGHT_BOTTOM = [(1177, 808), (1230, 808.5), (1258, 809), (1275, 820), (1293, 832), (1340, 836), (1450, 837), (1560, 834), (1600, 826)]
 
 
 def inner(pts, d, toward):
@@ -96,7 +102,7 @@ ri = inner(R_OUT, 15, MID)
 # the grey panels: the inside of each outline, closed along the middle display's edge
 PANEL_L = li[1:] + [(790, 778), (716, 612), (760, 500), (830, 415), (905, 395)]
 PANEL_R = ri[1:] + [(1560, 790), (1372, 772), (1385, 690), (1392, 600), (1350, 500), (1300, 425), (1262, 392)]
-CENTER = [(905, 414), (1250, 404), (1330, 418), (1390, 560), (1384, 650), (1318, 774), (900, 780), (796, 660)]
+CENTER = [(800, 354), (1010, 350), (1230, 354), (1413, 470), (1420, 640), (1380, 790), (1060, 836), (790, 800), (739, 640), (745, 470)]
 
 
 def bake_panels(name):
@@ -127,6 +133,14 @@ def thin(pts, n):
     """At most n points of a polyline, evenly picked."""
     if len(pts) <= n: return list(pts)
     return [pts[round(i * (len(pts) - 1) / (n - 1))] for i in range(n)]
+
+
+def relax(P, times=3):
+    """Evens a measured polyline out (the ends stay)."""
+    P = [tuple(q) for q in P]
+    for _ in range(times):
+        P = [P[0]] + [((P[i - 1][0] + 2 * P[i][0] + P[i + 1][0]) / 4, (P[i - 1][1] + 2 * P[i][1] + P[i + 1][1]) / 4) for i in range(1, len(P) - 1)] + [P[-1]]
+    return P
 
 
 def smooth(pts, n=10, closed=False):
@@ -162,6 +176,73 @@ def finish(im, w, h):
     return np.asarray(im.resize((w, h), Image.LANCZOS), dtype=np.uint8)
 
 
+
+def bake_lines():
+    """All the white line art, drawn from geometry (no pixels of the photo): the two chevron outlines with their thin inner lines, the
+    tapered leader at every scale mark and the small ticks between, the lines along the bottom, the power meter's, the battery's outlines."""
+    import numpy as np
+    k = 3
+    im, dr, k = canvas(1920, 660, k)
+
+    def pl(pts, w):
+        pp = [(x * k, y * k) for x, y in (L(*q) for q in pts)]
+        dr.line(pp, fill=255, width=max(1, int(w * k)), joint='curve')
+        r = w * k / 2
+        for x, y in (pp[0], pp[-1]):
+            dr.ellipse([x - r, y - r, x + r, y + r], fill=255)
+
+    def wedge(root, d, length, w0, w1=0.4):
+        """A tapered leader from root towards the unit direction d."""
+        (x, y) = L(*root)
+        nx, ny = -d[1], d[0]
+        P = [((x + nx * w0 / 2) * k, (y + ny * w0 / 2) * k), ((x + d[0] * length + nx * w1 / 2) * k, (y + d[1] * length + ny * w1 / 2) * k),
+             ((x + d[0] * length - nx * w1 / 2) * k, (y + d[1] * length - ny * w1 / 2) * k), ((x - nx * w0 / 2) * k, (y - ny * w0 / 2) * k)]
+        dr.polygon(P, fill=255)
+
+    def normal_at(path, p):
+        best = min(range(len(path) - 1), key=lambda i: math.hypot((path[i][0] + path[i + 1][0]) / 2 - p[0], (path[i][1] + path[i + 1][1]) / 2 - p[1]))
+        a, b = path[best], path[best + 1]
+        tx, ty = b[0] - a[0], b[1] - a[1]
+        n = (-ty, tx); ln = math.hypot(*n) or 1
+        n = (n[0] / ln, n[1] / ln)
+        return n if (MID[0] - p[0]) * n[0] + (MID[1] - p[1]) * n[1] > 0 else (-n[0], -n[1])
+
+    for outline, marks, minors in ((L_OUT, SPD_MARKS, 2), (R_OUT, REV_MARKS, 2)):
+        path = smooth(relax(outline, 1), 10)
+        pl(path, 3.4)
+        pl(inner(path, 6.5, MID)[::2], 1.5)
+        pts = [m[1] for m in marks]
+        for i, root in enumerate(pts):
+            n = normal_at(path, root)
+            wedge(root, n, 64 if i not in (0,) else 40, 4.6)
+            if i + 1 < len(pts):                                   # the small ticks between two marks
+                for j in range(1, minors + 1):
+                    t = j / (minors + 1)
+                    q = (root[0] + (pts[i + 1][0] - root[0]) * t, root[1] + (pts[i + 1][1] - root[1]) * t)
+                    q = min(path, key=lambda a: math.hypot(a[0] - q[0], a[1] - q[1]))
+                    n2 = normal_at(path, q)
+                    wedge(q, n2, 11, 2.2, 1.2)
+    for pts in (LEFT_BOTTOM, RIGHT_BOTTOM):
+        sm = smooth(pts, 8)
+        pl(sm, 3.2)
+        pl([(x, y + 6.5) for x, y in sm], 1.4)
+    # the power meter: the edge, the caps, the 0 line
+    z = lambda off, pts: [(off[0] + x / 4.0, off[1] + y / 4.0) for x, y in pts]
+    pl(smooth([(1428.8, 473.8)] + [(1465, 472.5)] + POWER_O, 8), 3.4)
+    pl([(1451, 673.8), (1484, 673.3)], 3.0)
+    pl([(1462.5, 643.8), (1500, 643.8)], 2.2)
+    pl([(1362, 640)] * 0 + [(1462.5, 643.8), (1470, 643.8)], 2.2)
+    # the battery: the outer double line, the tail on the left, the hook at the top
+    tail = [(1688, 830.5), (1677.5, 825.5)]
+    sm = smooth(B_OUT + tail, 8)
+    pl(sm, 3.4)
+    pl(smooth(inner(B_OUT[:8], 6, (1730, 760)), 8), 1.4)
+    pl([(1776, 675.5), (1788.1, 676.2)], 3.0)
+    # the left corner of the screen: the tail of the scale's chevron is part of the outline already
+    arr = np.asarray(im.resize((1920, 660), __import__('PIL.Image', fromlist=['Image']).LANCZOS), dtype=np.uint8)
+    put_art('livehyb', arr)
+
+
 def bake_centre():
     """The middle display (with and without the Waze window cut out) and the red glows at the feet of the panels, as 960 x 330 fills."""
     import numpy as np
@@ -172,44 +253,46 @@ def bake_centre():
         dr.polygon([(x / 2 * k, y / 2 * k) for x, y in pts], fill=255)
         if hole:
             dr.rounded_rectangle([668 / 2 * k, 128 / 2 * k, (668 + 628) / 2 * k, (128 + 436) / 2 * k], radius=56 / 2 * k, fill=0)
-        put_art(name, finish(im, 960, 330))
-    g = np.zeros((330, 960), float)
-    for x0, x1, y0, y1, ins in ((548, 720, 736, 788, 18), (1400, 1590, 730, 794, 20)):
+        cov = finish(im, 960, 330).astype(float) / 255
+        yy, xx = np.mgrid[0:330, 0:960].astype(float)
+        glow = np.clip(1 - np.hypot((xx - 480) / 400, (yy - 175) / 180), 0, 1)           # lighter towards the middle, like the photo's display
+        put_art(name, np.round(cov * (0.30 + 0.70 * glow) * 255).astype(np.uint8))
+
+
+def bake_glows():
+    """The red glows at the feet of the panels, with the photo's fine grid, as two full-size R8 pictures; returns their boxes."""
+    import numpy as np
+    boxes = {}
+    for name, (x0, y0, x1, y1) in (('glow_l', (548, 736, 720, 788)), ('glow_r', (1400, 726, 1590, 794))):
         (ax, ay), (bx, by) = L(x0, y0), L(x1, y1)
-        ax, ay, bx, by = ax / 2, ay / 2, bx / 2, by / 2
-        for yy in range(int(ay), int(by) + 1):
-            for xx in range(int(ax), int(bx) + 1):
-                u = (yy - ay) / max(1, by - ay)                                  # glow is strongest at the foot
-                edge = min(1.0, min(xx - ax, bx - xx) / 14.0) if True else 1
-                g[yy, xx] = max(g[yy, xx], 0.9 * (u ** 1.4) * max(0, edge))
-    put_art('lh_glow', np.round(g * 255).astype(np.uint8))
+        ax, ay, bx, by = int(ax), int(ay), int(bx) + 1, int(by) + 1
+        w, h = bx - ax, by - ay
+        yy, xx = np.mgrid[0:h, 0:w].astype(float)
+        u = yy / max(1, h - 1)
+        a = 0.95 * np.clip(u, 0, 1) ** 1.3 * np.clip(np.minimum(xx, w - 1 - xx) / 40.0, 0, 1) ** 1.5
+        grid = 1.0 - 0.42 * (((xx % 5) < 1.3) | ((yy % 5) < 1.3))
+        put_art('lh_' + name, np.round(np.clip(a * grid, 0, 1) * 255).astype(np.uint8))
+        boxes[name] = (ax, ay, w, h)
+    return boxes
 
 
 def gauge_masks():
     """The three gauge shapes of the photo (the power meter's chevron band, the battery's bowl, the fuel gauge's bent band), each baked as a
     coverage picture and a 'how far along' picture (hud/art/lh_<name>.json and lh_<name>_t.json, half size) for the GAUGEMASK shader, with
-    smooth edges: the outer curves are snapped onto the photo's white lines, then set a little inside them."""
+    smooth edges: the outer curves are the measured numbers above, set a little inside the white lines."""
     import numpy as np
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'livehybrid'))
-    import snap
     z = lambda off, pts: [(off[0] + x / 4.0, off[1] + y / 4.0) for x, y in pts]       # a zoomed crop's coordinates -> photo px
-    def relax(P, times=3):                                                             # the ridge snapping is noisy: even the points out
-        P = [tuple(q) for q in P]
-        for _ in range(times):
-            P = [P[0]] + [((P[i - 1][0] + 2 * P[i][0] + P[i + 1][0]) / 4, (P[i - 1][1] + 2 * P[i][1] + P[i + 1][1]) / 4) for i in range(1, len(P) - 1)] + [P[-1]]
-        return P
-    snapped = lambda off, pts, R=6: relax(snap.snap(z(off, pts), R))
-    power_o = smooth(snapped((1360, 440), [(420, 130), (500, 215), (560, 300), (620, 370), (665, 440), (688, 520), (675, 600), (640, 690), (580, 790), (500, 935)], 7), 8)
+    power_o = smooth(POWER_O, 8)
     power_i = smooth(z((1360, 440), [(440, 330), (520, 410), (572, 490), (580, 560), (555, 640), (500, 720), (440, 800), (395, 935)]), 8)
     power = [(1360 + 275 / 4, 440 + 135 / 4)] + power_o + [(1360 + 395 / 4, 440 + 935 / 4)] + power_i[::-1] + [(1360 + 440 / 4, 440 + 330 / 4)]
     # the battery: the outer white curve inset by a few px, the bowl on the left, the thin band up to 100
-    b_out = snapped((1640, 660), [(590, 68), (650, 112), (684, 200), (690, 300), (676, 400), (640, 490), (585, 570), (505, 640), (420, 692), (330, 722), (240, 706)], 7)
+    b_out = B_OUT
     b_ins = [(x - 4 * (x - 1740) / math.hypot(x - 1740, y - 800), y - 4 * (y - 800) / math.hypot(x - 1740, y - 800)) for x, y in b_out]
     band_in = inner(b_out[:6], 10, (1700, 760))
     batt = smooth(b_ins, 8) + smooth(z((1640, 660), [(250, 672), (262, 600), (300, 510), (350, 450), (420, 428)]), 8) + smooth(band_in[::-1], 6)[::-1][::-1]
     # the fuel gauge: the band between its outer white line and the thin inner one
     FX = 17                                                                           # the photo's gauge reaches past the screen's edge: moved in
-    f_o = [(x + FX, y) for x, y in snapped((260, 650), [(172, 92), (100, 160), (78, 260), (98, 360), (140, 450), (210, 540), (300, 620), (400, 690), (500, 745), (600, 775), (700, 768)], 6)]
+    f_o = [(x + FX, y) for x, y in F_O]
     f_i = inner(f_o, 13, (467, 660))
     f_c = inner(f_o, 3.5, (467, 660))
     fuel = smooth(f_c, 8) + smooth(f_i, 8)[::-1]
@@ -259,7 +342,7 @@ def gauge_masks():
 
 def gauges():
     box = gauge_masks()
-    spec = (('power', 'powerPct', 0, 100, 'accent', [84, 86, 92, 255]), ('batt', 'hvSoc', 0, 100, 'accent', [58, 62, 68, 255]),
+    spec = (('power', 'powerPct', 0, 100, 'accent', [96, 98, 106, 255]), ('batt', 'hvSoc', 0, 100, 'accent', [58, 62, 68, 255]),
             ('fuel', 'fuel', 0, 1, [236, 238, 240, 255], [74, 76, 80, 255]))
     return [{'id': n + '_gauge', 'type': 'gaugemask', 'class': 'content', 'z': 2, 'x': box[n][0], 'y': box[n][1], 'w': box[n][2], 'h': box[n][3], 'conn': 2,
              'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec] + [
@@ -269,27 +352,30 @@ def gauges():
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg'}]
 HOLE = {'hole': [668, 128, 628, 436], 'holeWhen': 'mapUp', 'holeInset': 0, 'holeRadius': 56}
 # the grey panels (one layer: a polygon each) and, over them, the middle display and the red glows (a second layer)
-PANEL = [44, 46, 50, 255]
-W.append({'id': 'panels', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'livehyb_panel', 'color': PANEL})
+PANEL = [50, 53, 58, 255]
 bake_centre()
-W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_mid', 'color': [16, 18, 24, 255], 'toggle': '!mapUp'})
-W.append({'id': 'middle_map', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_mid_hole', 'color': [16, 18, 24, 255], 'toggle': 'mapUp'})
-W.append({'id': 'glow', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_glow', 'color': [236, 40, 44, 255]})
+GLOWS = bake_glows()
+W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid', 'color': [70, 78, 90, 255], 'toggle': '!mapUp'})
+W.append({'id': 'middle_map', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid_hole', 'color': [70, 78, 90, 255], 'toggle': 'mapUp'})
+W.append({'id': 'panels', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'livehyb_panel', 'color': PANEL})
+for gid, (gx, gy, gw, gh) in GLOWS.items():
+    W.append({'id': gid, 'type': 'artmask', 'class': 'content', 'z': 1, 'x': gx, 'y': gy, 'w': gw, 'h': gh, 'conn': 2, 'art': 'lh_' + gid, 'color': [238, 36, 40, 255]})
 # the white line art baked from the photo
 W.append({'id': 'art', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb', 'color': WHITE})
 # ---- the scale numbers
 SPEED = [(0, (657, 782)), (30, (570, 784)), (60, (514, 726)), (90, (466, 654)), (120, (437, 582)), (150, (476, 514)), (180, (536, 464)),
          (210, (588, 422)), (240, (655, 400)), (270, (730, 387)), (300, (802, 384)), (330, (875, 380))]
 for k, (v, p) in enumerate(SPEED):
-    W.append(text('sk%d' % v, p, 100, 'z_num', str(v), WHITE, 'center', toggle='!units=us'))
-    W.append(text('sm%d' % (k * 20), p, 100, 'z_num', str(k * 20), WHITE, 'center', toggle='units=us'))
+    W.append(text('sk%d' % v, p, 100, 'h_scale', str(v), WHITE, 'center', toggle='!units=us'))
+    W.append(text('sm%d' % (k * 20), p, 100, 'h_scale', str(k * 20), WHITE, 'center', toggle='units=us'))
 REV = [(1, (1600, 752)), (2, (1655, 665)), (3, (1687, 575)), (4, (1647, 500)), (5, (1575, 440)), (6, (1485, 407)), (7, (1390, 390)), (8, (1287, 385))]
 for v, p in REV:
-    W.append(text('rv%d' % v, p, 60, 'z_num', str(v), WHITE, 'center'))
+    W.append(text('rv%d' % v, p, 60, 'h_scale', str(v), WHITE, 'center'))
 # ---- the needles: where each scale's ticks meet its outline (photo px)
 SPD_MARKS = [(0, (598, 837)), (1, (500, 822)), (2, (440, 752)), (3, (392, 677)), (4, (355, 585)), (5, (394, 502)), (6, (455, 447)), (7, (528, 395)), (8, (619, 362)),
              (9, (700, 358)), (10, (790, 343)), (11, (877, 343))]
 REV_MARKS = [(0, (1550, 825)), (1, (1652, 794)), (2, (1723, 706)), (3, (1769, 581)), (4, (1697, 462)), (5, (1629, 408)), (6, (1549, 370)), (7, (1430, 351)), (8, (1345, 343))]
+bake_lines()
 W.append({'id': 'spd_needle', 'type': 'pneedle', 'class': 'content', 'z': 3, 'x': 0, 'y': 0, 'w': 960, 'h': 660, 'conn': 3, 'signal': 'speed',
           'marks': [[30 * i, *L(*p)] for i, p in SPD_MARKS], 'marksUs': [[20 * i, *L(*p)] for i, p in SPD_MARKS], 'length': 78, 'width': 3.4, 'glow': 12, 'color': 'hot'})
 W.append({'id': 'rev_needle', 'type': 'pneedle', 'class': 'content', 'z': 3, 'x': 960, 'y': 0, 'w': 960, 'h': 660, 'conn': 3, 'signal': 'rpm',
@@ -303,23 +389,23 @@ W.append(text('speed_u', (818, 608), 100, 'h_small', '{{u:speedLc}}', WHITE, 'le
 # ---- the power meter and the electric range
 W.extend(gauges())
 for v, p in ((60, (1409, 471)), (40, (1454, 533)), (20, (1475, 595)), (0, (1432, 660))):
-    W.append(text('pk%d' % v, p, 50, 'm_tyre', str(v), DIM, 'center'))
-W.append(text('power', (1415, 565), 110, 'm_mid', '{{powerKw}}', WHITE, 'center'))
+    W.append(text('pk%d' % v, p, 50, 'h_tick', str(v), DIM, 'center'))
+W.append(text('power', (1415, 565), 110, 'h_kw', '{{powerKw}}', WHITE, 'center'))
 W.append(text('power_u', (1415, 597), 60, 'h_small', 'kW', DIM, 'center'))
 W.append(text('avg', (1562, 642), 130, 'h_small', 'Ø{{avgSpeed}}', DIM, 'center'))
 W.append(icon('evcar', 'evcar', (1381, 706), 70, CYAN))
-W.append(text('evrange', (1428, 706), 130, 'm_mid', '{{evRange}}', CYAN, 'left'))
+W.append(text('evrange', (1428, 706), 130, 'h_kw', '{{evRange}}', CYAN, 'left'))
 W.append(text('evrange_u', (1520, 712), 60, 'h_small', '{{u:distLc}}', CYAN, 'left'))
 # ---- READY, the revs label, the battery and fuel gauges
 W.append(text('ready', (1504, 771), 170, 'z_unit', '{{ready}}', WHITE, 'center'))
 W.append(text('revs_lbl', (1450, 803), 190, 'h_small', '1/min x1000', DIM, 'center'))
 W.append(text('batt_pct', (1748, 758), 90, 'z_unit', '{{hvSoc}}%', WHITE, 'center'))
-W.append(text('batt_100', (1750, 680), 80, 'm_tyre', '100', DIM, 'center'))
-W.append(text('batt_0', (1698, 797), 30, 'm_tyre', '0', DIM, 'center'))
+W.append(text('batt_100', (1750, 680), 80, 'h_tick', '100', DIM, 'center'))
+W.append(text('batt_0', (1698, 797), 30, 'h_tick', '0', DIM, 'center'))
 W.append(icon('batt_icon', 'battery', (1795, 819), 44, WHITE))
-W.append(text('fuel_1', (351, 692), 30, 'm_tyre', '1', DIM, 'center'))
-W.append(text('fuel_half', (385, 757), 70, 'z_unit', '1/2', DIM, 'center'))
-W.append(text('fuel_0', (435, 802), 30, 'm_tyre', '0', DIM, 'center'))
+W.append(text('fuel_1', (351, 692), 30, 'h_tick', '1', DIM, 'center'))
+W.append(text('fuel_half', (385, 757), 70, 'h_tick', '1/2', DIM, 'center'))
+W.append(text('fuel_0', (435, 802), 30, 'h_tick', '0', DIM, 'center'))
 W.append(icon('pump', 'fuel', (329, 808), 30, DIM))
 # ---- the bottom row: the range and the time on the left, the temperature and the electric range on the right
 W.append({'id': 'strip_cover_l', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 660, 'w': 1380, 'h': 60, 'color': 'bg', 'stripRow': 'l'})
@@ -335,7 +421,7 @@ W.append({'id': 'strip_ev', 'type': 'text', 'z': 3, 'x': 1752, 'y': 672, 'w': 10
 W.append({'id': 'strip_ev_u', 'type': 'text', 'z': 3, 'x': 1858, 'y': 678, 'w': 50, 'h': 27, 'text': '{{u:dist}}', 'font': 'e_head', 'color': CYAN, 'align': 'left', 'stripRow': 'r'})
 
 LAY = {'schemaVersion': 2, 'name': 'Live Hybrid', 'theme': 'livehyb', 'packWaste': 3, 'mapLive': False,
-       '_about': "Live Hybrid cluster, generated by tools/gen_livehybrid.py (edit that and regenerate), after a photo of BMW's Live Cockpit Professional in a plug-in hybrid (3.jpeg): white outlined chevron scales (the speed 0 to 330 km/h on the left, the revs 0 to 8 on the right) with a red needle at the value, grey panels with the red glow at their foot, the big speed, the drive mode under ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery and fuel gauges, READY, and the dark middle display, where the Waze map opens while 'Show Waze map inside the theme' is on. The line art is baked from the photo (hud/art/livehyb.json). Black covers BMW's gauges. Widget reference: shared/hud.js header.",
+       '_about': "Live Hybrid cluster, generated by tools/gen_livehybrid.py (edit that and regenerate), after a photo of BMW's Live Cockpit Professional in a plug-in hybrid (3.jpeg): white outlined chevron scales (the speed 0 to 330 km/h on the left, the revs 0 to 8 on the right) with a red needle at the value, grey panels with the red glow at their foot, the big speed, the drive mode under ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery and fuel gauges, READY, and the dark middle display, where the Waze map opens while 'Show Waze map inside the theme' is on. The line art is drawn from geometry by the generator (hud/art/livehyb.json). Black covers BMW's gauges. Widget reference: shared/hud.js header.",
        'widgets': W}
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     json.dump(LAY, f, indent=2, ensure_ascii=False)

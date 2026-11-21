@@ -128,6 +128,9 @@ CLUSTER_FONTS = [
     ('x_unit', 'Outfit[wght].ttf', 46, 'mphkm/h', 0, 'Regular'),
     # Live Hybrid (after the hybrid Live Cockpit): the big mode word in Orbitron Black, small Outfit print with the Ø
     ('h_mode', 'Orbitron[wght].ttf', 54, UPPER + ' ', 0, 'Black'),
+    ('h_scale', 'Orbitron[wght].ttf', 36, DIGITS, 0, 'Black', {'0': 'O'}, '', 0.8),
+    ('h_tick', 'Orbitron[wght].ttf', 24, DIGITS + '/ ', 0, 'Black', {'0': 'O'}, '', 0.85),
+    ('h_kw', 'Orbitron[wght].ttf', 40, DIGITS + '.-', 0, 'Black', {'0': 'O'}, '', 0.85),
     ('h_small', 'Outfit[wght].ttf', 28, UPPER + LOWER + DIGITS + "Ø /-.%°:+", 0, 'Regular'),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),

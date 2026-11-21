@@ -3518,7 +3518,7 @@ void main() {
 }`;
 
 
-// ---- the Live Hybrid theme's line art (layouts/livehyb.json, tools/livehybrid/bake_mask.py): a one-channel picture (an R8 asset
+// ---- the Live Hybrid theme's line art (layouts/livehyb.json, drawn by tools/gen_livehybrid.py): a one-channel picture (an R8 asset
 // of the layer's own size, baked from the photo's white lines) drawn in one colour. One texture read, nothing else.
 const GAUGEMASK = `// A gauge of any shape, baked as two one-channel pictures: u_cov (where the gauge is) and u_par (how far along it each pixel is,
 // 0..1): the pixels up to u_v are lit. One cluster-render "effect" layer (GLSL ES 1.00). Straight alpha out.
