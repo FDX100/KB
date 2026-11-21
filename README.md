@@ -31,7 +31,6 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 <tr><td align="center" width="50%"><img src="docs/themes/e46.png" width="440" alt="E46 M3"><br><b>E46 M3</b><br>White-faced analog cluster with chrome bezels and an orange LCD.</td><td align="center" width="50%"><img src="docs/themes/hybrid.png" width="440" alt="Hybrid"><br><b>Hybrid</b><br>One big speed with the battery charge line.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/luxe.png" width="440" alt="Luxe"><br><b>Luxe</b><br>Classic and luxurious e-drive: gold-bezel dials, a POWER dial with a CHARGE sector, an analog clock, and a charging view with kW, battery and time to full.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/arcd.png" width="440" alt="Arc Digital"><br><b>Arc Digital</b><br>After a digital sports-car cluster: a half-circle rev bar of slats (green, yellow, red), seven-segment speed, coolant and fuel bars, and lamps that light with what the car does.</td></tr>
-<tr><td align="center" width="50%"><img src="docs/themes/livehyb.png" width="440" alt="Live Hybrid"><br><b>Live Hybrid</b><br>After BMW's Live Cockpit in a plug-in hybrid: white outlined chevron scales (speed 0 to 330, revs 0 to 8) with a red needle, ELECTRIC / HYBRID by the engine, the kW power meter, electric range, battery and fuel gauges, READY.</td><td align="center" width="50%"></td></tr>
 </table>
 
 Pictures are bench screenshots of the cluster area, not photos from a car.

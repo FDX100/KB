@@ -2838,7 +2838,7 @@ class HudApp {
             c.uniform(ref, 'u_s2', [s.cells, s.slant, s.gap, 0]);
             c.uniform(ref, 'u_s3', [s.orange, s.magenta, 0, 0]);
         } else if (w.type === 'artmask') {
-            // the Live Hybrid theme's line art (shaders.js ARTMASK): "art" names hud/art/<art>.json, "color" its colour
+            // a baked one-channel picture (shaders.js ARTMASK): "art" names hud/art/<art>.json, "color" its colour
             const a = this._art(w.art, x.ci);
             c.uniform(ref, 'u_col', rgba(color(t, w.color || 'fg')));
             if (a) c.bind(ref, 'u_tex', a.ref);
