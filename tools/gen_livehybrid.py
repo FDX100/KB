@@ -129,26 +129,97 @@ def thin(pts, n):
     return [pts[round(i * (len(pts) - 1) / (n - 1))] for i in range(n)]
 
 
+def smooth(pts, n=10, closed=False):
+    """A Catmull-Rom curve through the points (n steps between each pair)."""
+    P = [tuple(p) for p in pts]
+    out = []
+    m = len(P)
+    for i in range(m if closed else m - 1):
+        p0, p1, p2, p3 = (P[(i - 1) % m], P[i], P[(i + 1) % m], P[(i + 2) % m]) if closed else (P[max(0, i - 1)], P[i], P[i + 1], P[min(m - 1, i + 2)])
+        for k in range(n):
+            t = k / n
+            out.append(tuple(0.5 * ((2 * p1[j]) + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t * t + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t ** 3) for j in (0, 1)))
+    if not closed: out.append(P[-1])
+    return out
+
+
+def put_art(name, arr):
+    import base64, zlib
+    h, w = arr.shape
+    with open(os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'art', name + '.json'), 'w') as f:
+        json.dump({'w': w, 'h': h, 'z': base64.b64encode(zlib.compress(arr.tobytes(), 9)).decode()}, f)
+
+
+def canvas(w, h, k=4):
+    from PIL import Image, ImageDraw
+    im = Image.new('L', (w * k, h * k), 0)
+    return im, ImageDraw.Draw(im), k
+
+
+def finish(im, w, h):
+    import numpy as np
+    from PIL import Image
+    return np.asarray(im.resize((w, h), Image.LANCZOS), dtype=np.uint8)
+
+
+def bake_centre():
+    """The middle display (with and without the Waze window cut out) and the red glows at the feet of the panels, as 960 x 330 fills."""
+    import numpy as np
+    from PIL import ImageFilter
+    pts = [L(*q) for q in smooth(CENTER, 8, True)]
+    for name, hole in (('lh_mid', False), ('lh_mid_hole', True)):
+        im, dr, k = canvas(960, 330)
+        dr.polygon([(x / 2 * k, y / 2 * k) for x, y in pts], fill=255)
+        if hole:
+            dr.rounded_rectangle([668 / 2 * k, 128 / 2 * k, (668 + 628) / 2 * k, (128 + 436) / 2 * k], radius=56 / 2 * k, fill=0)
+        put_art(name, finish(im, 960, 330))
+    g = np.zeros((330, 960), float)
+    for x0, x1, y0, y1, ins in ((548, 720, 736, 788, 18), (1400, 1590, 730, 794, 20)):
+        (ax, ay), (bx, by) = L(x0, y0), L(x1, y1)
+        ax, ay, bx, by = ax / 2, ay / 2, bx / 2, by / 2
+        for yy in range(int(ay), int(by) + 1):
+            for xx in range(int(ax), int(bx) + 1):
+                u = (yy - ay) / max(1, by - ay)                                  # glow is strongest at the foot
+                edge = min(1.0, min(xx - ax, bx - xx) / 14.0) if True else 1
+                g[yy, xx] = max(g[yy, xx], 0.9 * (u ** 1.4) * max(0, edge))
+    put_art('lh_glow', np.round(g * 255).astype(np.uint8))
+
+
 def gauge_masks():
     """The three gauge shapes of the photo (the power meter's chevron band, the battery's bowl, the fuel gauge's bent band), each baked as a
-    coverage picture and a 'how far along' picture (hud/art/<name>.json and <name>_t.json, half size) for the GAUGEMASK shader."""
-    import base64, zlib
+    coverage picture and a 'how far along' picture (hud/art/lh_<name>.json and lh_<name>_t.json, half size) for the GAUGEMASK shader, with
+    smooth edges: the outer curves are snapped onto the photo's white lines, then set a little inside them."""
     import numpy as np
-    from PIL import Image, ImageDraw
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'livehybrid'))
+    import snap
     z = lambda off, pts: [(off[0] + x / 4.0, off[1] + y / 4.0) for x, y in pts]       # a zoomed crop's coordinates -> photo px
-    power = z((1360, 440), [(275, 135), (420, 130), (560, 300), (660, 420), (690, 520), (660, 650), (580, 790), (500, 935), (395, 935),
-                            (440, 800), (540, 660), (580, 560), (570, 480), (440, 330)])
-    batt = z((1640, 660), [(585, 85), (630, 150), (645, 300), (635, 400), (600, 470), (540, 550), (440, 630), (330, 668), (255, 655), (310, 520),
-                           (380, 440), (560, 425), (578, 300), (578, 160)])
-    fuel = z((260, 650), [(195, 110), (300, 102), (300, 190), (180, 205), (165, 300), (190, 420), (250, 520), (330, 600), (430, 660), (560, 690),
-                          (750, 665), (765, 725), (700, 760), (560, 765), (450, 720), (330, 640), (220, 540), (140, 420), (100, 300), (110, 200)])
-    fuel_mid = z((260, 650), [(700, 715), (560, 728), (450, 690), (330, 620), (250, 530), (190, 420), (150, 300), (150, 200), (245, 150)])
+    def relax(P, times=3):                                                             # the ridge snapping is noisy: even the points out
+        P = [tuple(q) for q in P]
+        for _ in range(times):
+            P = [P[0]] + [((P[i - 1][0] + 2 * P[i][0] + P[i + 1][0]) / 4, (P[i - 1][1] + 2 * P[i][1] + P[i + 1][1]) / 4) for i in range(1, len(P) - 1)] + [P[-1]]
+        return P
+    snapped = lambda off, pts, R=6: relax(snap.snap(z(off, pts), R))
+    power_o = smooth(snapped((1360, 440), [(420, 130), (500, 215), (560, 300), (620, 370), (665, 440), (688, 520), (675, 600), (640, 690), (580, 790), (500, 935)], 7), 8)
+    power_i = smooth(z((1360, 440), [(440, 330), (520, 410), (572, 490), (580, 560), (555, 640), (500, 720), (440, 800), (395, 935)]), 8)
+    power = [(1360 + 275 / 4, 440 + 135 / 4)] + power_o + [(1360 + 395 / 4, 440 + 935 / 4)] + power_i[::-1] + [(1360 + 440 / 4, 440 + 330 / 4)]
+    # the battery: the outer white curve inset by a few px, the bowl on the left, the thin band up to 100
+    b_out = snapped((1640, 660), [(590, 68), (650, 112), (684, 200), (690, 300), (676, 400), (640, 490), (585, 570), (505, 640), (420, 692), (330, 722), (240, 706)], 7)
+    b_ins = [(x - 4 * (x - 1740) / math.hypot(x - 1740, y - 800), y - 4 * (y - 800) / math.hypot(x - 1740, y - 800)) for x, y in b_out]
+    band_in = inner(b_out[:6], 10, (1700, 760))
+    batt = smooth(b_ins, 8) + smooth(z((1640, 660), [(250, 672), (262, 600), (300, 510), (350, 450), (420, 428)]), 8) + smooth(band_in[::-1], 6)[::-1][::-1]
+    # the fuel gauge: the band between its outer white line and the thin inner one
+    FX = 17                                                                           # the photo's gauge reaches past the screen's edge: moved in
+    f_o = [(x + FX, y) for x, y in snapped((260, 650), [(172, 92), (100, 160), (78, 260), (98, 360), (140, 450), (210, 540), (300, 620), (400, 690), (500, 745), (600, 775), (700, 768)], 6)]
+    f_i = inner(f_o, 13, (467, 660))
+    f_c = inner(f_o, 3.5, (467, 660))
+    fuel = smooth(f_c, 8) + smooth(f_i, 8)[::-1]
+    fuel_path = z((260 + FX, 650), [(700, 715), (600, 722), (520, 700), (440, 650), (370, 580), (300, 500), (235, 400), (195, 300), (190, 200), (240, 150)])
 
-    def by_y(table):                                  # the value (0..1) from a photo y, along [(y, value), ...]
+    def by_y(table):
         ys = [a for a, _ in table]; vs = [b for _, b in table]
         return lambda y: np.interp(y, ys[::-1], vs[::-1])
 
-    def along(path):                                  # the value (0..1) of the nearest point of a polyline
+    def along(path):
         seg = np.array(path); d = np.hypot(*(seg[1:] - seg[:-1]).T); cum = np.concatenate([[0], np.cumsum(d)]) / d.sum()
         def f(x, y):
             best = np.full(x.shape, 1e9); val = np.zeros(x.shape)
@@ -162,23 +233,27 @@ def gauge_masks():
     out = {}
     for name, poly, par in (('power', power, lambda x, y: by_y([(666.25, 0), (473.75, 1)])(y)),
                             ('batt', batt, lambda x, y: by_y([(827.5, 0), (767.5, 0.53), (681.25, 1)])(y)),
-                            ('fuel', fuel, along(fuel_mid))):
+                            ('fuel', fuel, along(fuel_path))):
         lp = [L(*q) for q in poly]
         x0 = max(0, int(min(q[0] for q in lp)) - 4); x1 = int(max(q[0] for q in lp)) + 5
         y0 = max(0, int(min(q[1] for q in lp)) - 4); y1 = int(max(q[1] for q in lp)) + 5
         w, h = x1 - x0, y1 - y0
-        mw, mh = (w + 1) // 2, (h + 1) // 2
-        k = 4
-        im = Image.new('L', (mw * k, mh * k), 0)
-        ImageDraw.Draw(im).polygon([((x - x0) / 2 * k, (y - y0) / 2 * k) for x, y in lp], fill=255)
-        cov = np.asarray(im.resize((mw, mh), Image.LANCZOS), dtype=np.uint8)
-        gx, gy = np.meshgrid((np.arange(mw) * 2 + 1 + x0) , (np.arange(mh) * 2 + 1 + y0))
-        px = 1060 + (gx - 960) / S; py = 322 + gy / S                                  # layout px back to photo px
+        im, dr, k = canvas(w, h, 4)
+        dr.polygon([((x - x0) * k, (y - y0) * k) for x, y in lp], fill=255)
+        cov = finish(im, w, h)                                                           # full size: the edges stay crisp
+        gx, gy = np.meshgrid(np.arange(w) + 0.5 + x0, np.arange(h) + 0.5 + y0)
+        px = 1060 + (gx - 960) / S; py = 322 + gy / S
         t = np.clip(par(px, py), 0, 1)
-        for nm, arr in ((name, cov), (name + '_t', np.round(t * 255).astype(np.uint8))):
-            with open(os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'art', 'lh_' + nm + '.json'), 'w') as f:
-                json.dump({'w': mw, 'h': mh, 'z': base64.b64encode(zlib.compress(arr.tobytes(), 9)).decode()}, f)
+        put_art('lh_' + name, cov)
+        put_art('lh_' + name + '_t', np.round(t * 255).astype(np.uint8))
         out[name] = (x0, y0, w, h)
+    # the fuel gauge's own white lines (the photo's are blanked out of the baked art): the outer double line and the thin inner one
+    lp = lambda pts: [L(*q) for q in pts]
+    x0, y0, w, h = out['fuel']
+    im, dr, k = canvas(w, h, 4)
+    for pts, width in ((smooth(f_o, 8), 2.6), (smooth(inner(f_o, 3.8, (467, 660)), 8), 1.6), (smooth(f_i, 8), 1.6)):
+        dr.line([((x - x0) * k, (y - y0) * k) for x, y in lp(pts)], fill=255, width=int(width * k), joint='curve')
+    put_art('lh_fuel_lines', finish(im, w, h))
     return out
 
 
@@ -187,7 +262,8 @@ def gauges():
     spec = (('power', 'powerPct', 0, 100, 'accent', [84, 86, 92, 255]), ('batt', 'hvSoc', 0, 100, 'accent', [58, 62, 68, 255]),
             ('fuel', 'fuel', 0, 1, [236, 238, 240, 255], [74, 76, 80, 255]))
     return [{'id': n + '_gauge', 'type': 'gaugemask', 'class': 'content', 'z': 2, 'x': box[n][0], 'y': box[n][1], 'w': box[n][2], 'h': box[n][3], 'conn': 2,
-             'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec]
+             'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec] + [
+        {'id': 'fuel_lines', 'type': 'artmask', 'class': 'content', 'z': 3, 'x': box['fuel'][0], 'y': box['fuel'][1], 'w': box['fuel'][2], 'h': box['fuel'][3], 'conn': 2, 'art': 'lh_fuel_lines', 'color': WHITE}]
 
 
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg'}]
@@ -195,10 +271,10 @@ HOLE = {'hole': [668, 128, 628, 436], 'holeWhen': 'mapUp', 'holeInset': 0, 'hole
 # the grey panels (one layer: a polygon each) and, over them, the middle display and the red glows (a second layer)
 PANEL = [44, 46, 50, 255]
 W.append({'id': 'panels', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'livehyb_panel', 'color': PANEL})
-W.append(dict({'id': 'middle', 'type': 'gpoly', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2,
-               'polys': [poly(CENTER, 0, 0, [10, 12, 16, 1.0], [24, 26, 32, 1.0], 8),
-                         poly([(548, 736), (720, 736), (700, 788), (568, 788)], 0, 0, [150, 20, 24, 0.0], [235, 40, 44, 0.85], 26),
-                         poly([(1400, 730), (1590, 730), (1560, 794), (1420, 794)], 0, 0, [150, 20, 24, 0.0], [235, 40, 44, 0.85], 26)], 'lines': []}, **HOLE))
+bake_centre()
+W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_mid', 'color': [16, 18, 24, 255], 'toggle': '!mapUp'})
+W.append({'id': 'middle_map', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_mid_hole', 'color': [16, 18, 24, 255], 'toggle': 'mapUp'})
+W.append({'id': 'glow', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 2, 'art': 'lh_glow', 'color': [236, 40, 44, 255]})
 # the white line art baked from the photo
 W.append({'id': 'art', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb', 'color': WHITE})
 # ---- the scale numbers
@@ -238,13 +314,13 @@ W.append(text('evrange_u', (1520, 712), 60, 'h_small', '{{u:distLc}}', CYAN, 'le
 W.append(text('ready', (1504, 771), 170, 'z_unit', '{{ready}}', WHITE, 'center'))
 W.append(text('revs_lbl', (1450, 803), 190, 'h_small', '1/min x1000', DIM, 'center'))
 W.append(text('batt_pct', (1748, 758), 90, 'z_unit', '{{hvSoc}}%', WHITE, 'center'))
-W.append(text('batt_100', (1766, 682), 50, 'm_tyre', '100', DIM, 'center'))
+W.append(text('batt_100', (1750, 680), 80, 'm_tyre', '100', DIM, 'center'))
 W.append(text('batt_0', (1698, 797), 30, 'm_tyre', '0', DIM, 'center'))
 W.append(icon('batt_icon', 'battery', (1795, 819), 44, WHITE))
-W.append(text('fuel_1', (334, 692), 30, 'm_tyre', '1', DIM, 'center'))
-W.append(text('fuel_half', (368, 757), 60, 'm_tyre', '1/2', DIM, 'center'))
-W.append(text('fuel_0', (418, 802), 30, 'm_tyre', '0', DIM, 'center'))
-W.append(icon('pump', 'fuel', (312, 808), 30, DIM))
+W.append(text('fuel_1', (351, 692), 30, 'm_tyre', '1', DIM, 'center'))
+W.append(text('fuel_half', (385, 757), 70, 'z_unit', '1/2', DIM, 'center'))
+W.append(text('fuel_0', (435, 802), 30, 'm_tyre', '0', DIM, 'center'))
+W.append(icon('pump', 'fuel', (329, 808), 30, DIM))
 # ---- the bottom row: the range and the time on the left, the temperature and the electric range on the right
 W.append({'id': 'strip_cover_l', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 660, 'w': 1380, 'h': 60, 'color': 'bg', 'stripRow': 'l'})
 W.append({'id': 'strip_cover_r', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 1460, 'y': 660, 'w': 460, 'h': 60, 'color': 'bg', 'stripRow': 'r'})
