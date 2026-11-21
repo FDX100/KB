@@ -765,10 +765,10 @@
       "id": "badgemark",
       "type": "badgemark",
       "z": 5,
-      "x": 1470,
-      "y": 30,
+      "x": 810,
+      "y": 592,
       "w": 300,
-      "h": 64,
+      "h": 58,
       "font": "badge",
       "color": "dim",
       "align": "center"
