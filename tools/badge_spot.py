@@ -13,6 +13,7 @@ LAYOUTS = os.path.join(HERE, '..', 'apps', 'kurdbimmer_themes', 'hud', 'layouts'
 SPOTS = {
     'alpina':      (800, 330, 320, 80, 'center', 'badge', 'dim', '!mapUp'),
     'apex':        (810, 22, 300, 64, 'center', 'badge', 'dim', None),
+    'arcd':        (810, 36, 300, 76, 'center', 'badge', 'dim', None),
     'bluedials':   (830, 592, 200, 58, 'center', 'badge', 'dim', None),
     'classic':     (810, 40, 300, 90, 'center', 'badge', 'dim', None),
     'classic_map': (810, 24, 300, 50, 'center', 'badge', 'dim', None),

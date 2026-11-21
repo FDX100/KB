@@ -3443,4 +3443,79 @@ void main() {
     gl_FragColor = vec4(g_acc.rgb / max(g_acc.a, 0.0001), g_acc.a);
 }`;
 
-module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+// ---- the Arc Digital theme's rev arc (layouts/arcd.json, tools/gen_arcd.py), after a digital sports-car cluster: a bar of thin
+// radial slats along a big circle, one slat for every 100 rpm, lit up to the revs (unlit ones stay as a dark ghost), green to 6000,
+// yellow to orange, a red block at the end, and white tick marks inside it at every thousand and half thousand. The scale is not
+// even: u_ang gives the angle (radians from straight up, clockwise) at 0, 1000 ... 11000 rpm and the bar follows it, so the
+// slats widen towards the red. One cheap pass per pixel (a loop of 11), no tables of points.
+const SEGARC = `// A segmented rev arc in one cluster-render "effect" layer (GLSL ES 1.00). v_uv (0,0) is the top-left.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform vec2 u_size;
+uniform vec2 u_c;          // the circle's centre (layer px)
+uniform vec4 u_r;          // slat inner radius, slat outer radius, tick inner radius, tick outer radius
+uniform vec4 u_t;          // half tick length, tick width, red block's extra inner reach (px), -
+uniform vec4 u_z;          // thousands where yellow, orange and the red block start, and where the bar ends
+uniform float u_ang[12];   // the angle at 0, 1000 ... 11000 rpm (radians, clockwise from straight up)
+uniform float u_v;         // the revs in thousands
+const vec3 GREEN = vec3(0.36, 0.88, 0.17);
+const vec3 YEL0 = vec3(0.93, 0.89, 0.15);
+const vec3 YEL1 = vec3(0.90, 0.70, 0.12);
+const vec3 ORA0 = vec3(0.93, 0.62, 0.14);
+const vec3 ORA1 = vec3(0.86, 0.44, 0.10);
+const vec3 RED0 = vec3(0.80, 0.14, 0.10);
+const vec3 RED1 = vec3(1.0, 0.30, 0.22);
+vec4 g_acc;
+void lay(vec3 col, float a) {
+    a = clamp(a, 0.0, 1.0);
+    g_acc.rgb = col * a + g_acc.rgb * (1.0 - a);
+    g_acc.a = a + g_acc.a * (1.0 - a);
+}
+void main() {
+    vec2 p = v_uv * u_size - u_c;
+    float r = length(p);
+    float ang = atan(p.x, -p.y);
+    g_acc = vec4(0.0);
+    // the revs (thousands) at this pixel's angle, and how many pixels a thousand is here
+    float t = -1.0, pxk = 1.0;
+    for (int i = 0; i < 11; i++) {
+        float a0 = u_ang[i], a1 = u_ang[i + 1];
+        if (ang >= a0 && ang < a1) { t = float(i) + (ang - a0) / (a1 - a0); pxk = r * (a1 - a0); }
+    }
+    if (t >= 0.0 && t < u_z.w) {
+        // the slats: one every 100 rpm
+        float h = t * 10.0, s = floor(h), f = h - s;
+        float pitch = pxk * 0.1;
+        float across = clamp((0.29 - abs(f - 0.5)) * pitch + 0.5, 0.0, 1.0);
+        float tc = (s + 0.5) * 0.1;
+        bool red = tc >= u_z.z;
+        float reach = red ? u_t.z * (1.0 - (tc - u_z.z) / max(u_z.w - u_z.z, 0.01)) : 0.0;
+        float radial = clamp(min(r - (u_r.x - reach), u_r.y - r) + 0.5, 0.0, 1.0);
+        vec3 col = GREEN;
+        if (tc >= u_z.x) col = mix(YEL0, YEL1, clamp((tc - u_z.x) / max(u_z.y - u_z.x, 0.01), 0.0, 1.0));
+        if (tc >= u_z.y) col = mix(ORA0, ORA1, clamp((tc - u_z.y) / max(u_z.z - u_z.y, 0.01), 0.0, 1.0));
+        if (red) col = (tc < u_z.z + 0.12) ? RED1 : RED0;
+        // lit up to the revs; the rest a dark ghost of its colour
+        vec3 shown = tc <= u_v ? col : col * 0.17 + vec3(0.016);
+        lay(shown, across * radial);
+    }
+    // the tick marks inside the bar: long at every thousand (to 8), short at every half thousand (to 8.5)
+    if (t >= 0.0 && t < 8.6 && r > u_r.z - 1.0 && r < u_r.w + 1.0) {
+        float hh = t * 2.0, n = floor(hh + 0.5);
+        float dpx = abs(hh - n) * 0.5 * pxk;
+        float even = abs(n * 0.5 - floor(n * 0.5 + 0.5));      // 0 at a whole thousand
+        bool major = even < 0.01 && n < 16.5;
+        float inner = major ? u_r.z : u_r.w - u_t.x;
+        float radial = clamp(min(r - inner, u_r.w - r) + 0.5, 0.0, 1.0);
+        float w = major ? u_t.y : u_t.y * 0.8;
+        lay(vec3(0.93, 0.94, 0.95), clamp(w * 0.5 - dpx + 0.5, 0.0, 1.0) * radial);
+    }
+    gl_FragColor = vec4(g_acc.rgb / max(g_acc.a, 0.0001), g_acc.a);
+}`;
+
+
+module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };

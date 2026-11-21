@@ -98,6 +98,7 @@
  *             "zones", "band", "gap", "dashes", "cap", "needleLength", "needleColor", "signal" with "min" / "max"
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
+ *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
  *   gdial     effect layer; a glass-ring dial with a blue needle and comet glow (shaders.js GDIAL, the Glass theme): "rings", "start" / "sweep", "tail", "majors" /
  *             "minors" / "tickLen", "level" { radius, width, start, sweep, signal, min, max }, "redBand", "needle", "glow", "signal" with "min" / "max" ({ us, metric } or a number)
  *   gpoly     effect layer; soft gradient polygons and glowing lines (shaders.js GPOLY, the Glass theme's road and brackets): "polys", "lines", the map window as "hole"
@@ -2728,6 +2729,18 @@ class HudApp {
             c.uniform(ref, 'u_s', [s.rect[0] - w.x, s.rect[1] - w.y, s.rect[2], s.rect[3]]);
             c.uniform(ref, 'u_s2', [s.cells, s.slant, s.gap, 0]);
             c.uniform(ref, 'u_s3', [s.orange, s.magenta, 0, 0]);
+        } else if (w.type === 'segarc') {
+            // the Arc Digital theme's rev arc (shaders.js SEGARC): "center" [x, y] (target px), "radii" [slat in, slat out, tick in, tick out],
+            // "tick" [half tick length, width, red block reach], "zones" [yellow, orange, red from, end] (thousands), "angles" degrees at 0..10 thousand
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_c', [w.center[0] - w.x, w.center[1] - w.y]);
+            c.uniform(ref, 'u_r', w.radii);
+            c.uniform(ref, 'u_t', [w.tick[0], w.tick[1], w.tick[2], 0]);
+            c.uniform(ref, 'u_z', w.zones);
+            const ang = w.angles.map((d) => d * Math.PI / 180);
+            while (ang.length < 12) ang.push(ang[ang.length - 1] + 0.2);
+            c.uniform(ref, 'u_ang', ang, { type: 'float' });
+            c.uniform(ref, 'u_v', [0]);
         } else if (w.type === 'gdial') {
             // the Glass theme's dial (shaders.js GDIAL): "rings" [outer white, glass inner, glass outer, ticks outer], "start" / "sweep", "tail" (comet degrees), "majors" / "minors" /
             // "tickLen", "level" { radius, width, start, sweep, signal, min, max }, "redBand" [from, to] (fractions), "needle" { length, tail, width }, "glow" rgb
@@ -3701,6 +3714,11 @@ class HudApp {
             x.last = key;
             x.c.uniform(x.ref, 'u_s2', [s.cells, s.slant, s.gap, q]);
             x.c.uniform(x.ref, 'u_s3', [s.orange, s.magenta, pk > q ? pk : 0, 0]);
+        } else if (w.type === 'segarc') {
+            const rpm = this._raw('rpm'), q = Math.round((isNum(rpm) ? Math.max(0, rpm) / 1000 : 0) * 100) / 100;
+            if (!force && q === x.last) return;
+            x.last = q;
+            x.c.uniform(x.ref, 'u_v', [q]);
         } else if (w.type === 'gdial') {
             const us = this.setting('units') === 'us';
             const pick = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? (us ? v.us : v.metric) : v);

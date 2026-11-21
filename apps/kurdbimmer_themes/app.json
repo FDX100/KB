@@ -1,8 +1,8 @@
 {
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
-  "description": "Seventeen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.26.0",
+  "description": "Eighteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
+  "version": "0.27.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -194,6 +194,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },
@@ -280,6 +284,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },
@@ -360,6 +368,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },
@@ -440,6 +452,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },
@@ -524,6 +540,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },
@@ -608,6 +628,10 @@
         [
           "luxe",
           "Luxe"
+        ],
+        [
+          "arcd",
+          "Arc Digital"
         ]
       ]
     },

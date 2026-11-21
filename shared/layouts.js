@@ -37,6 +37,7 @@ const TYPES = {
     eside: ['center', 'radius', 'half', 'start', 'sweep', 'needle', 'ticks', 'signal', 'min', 'max'],
     wdial: ['rings', 'start', 'sweep', 'notch', 'needleLength', 'needleColor', 'signal', 'min', 'max'],
     wgauge: ['pivot', 'arc', 'ticks', 'needle', 'pivotRadius'],
+    segarc: ['center', 'radii', 'tick', 'zones', 'angles'],
     gdial: ['rings', 'start', 'sweep', 'tail', 'majors', 'minors', 'tickLen', 'needle', 'glow', 'signal', 'min', 'max'],
     gpoly: ['polys'],
     csky: ['baseY', 'building', 'brightness'],

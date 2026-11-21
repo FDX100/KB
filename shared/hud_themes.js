@@ -200,6 +200,16 @@ const THEMES = {
         bg: [5, 4, 3, 255], panel: [5, 4, 3, 255], line: [150, 124, 80, 255], head: [214, 178, 108, 255],
         ink: [12, 9, 6, 255], accent: [214, 178, 108, 255], well: [5, 4, 3, 255], green: [118, 204, 170, 255],
     },
+    // Arc Digital (layout arcd.json): a digital sports-car cluster, white seven-segment digits on black with grey panels.
+    arcd: {
+        name: 'Arc Digital',
+        fg: [236, 238, 240, 255], dim: [150, 154, 152, 255], track: [44, 46, 44, 255], arc: [92, 224, 44, 255],
+        glow: 0, stripe: false,
+        bar: { low: [92, 224, 44], mid: [236, 200, 40], high: [230, 60, 40], midAt: 'shift' },
+        rev: { from: [92, 224, 44], to: [230, 60, 40] },
+        bg: [0, 0, 0, 255], panel: [24, 25, 24, 255], line: [52, 54, 52, 255], head: [92, 224, 44, 255],
+        ink: [10, 10, 10, 255], accent: [92, 224, 44, 255], well: [0, 0, 0, 255],
+    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });
