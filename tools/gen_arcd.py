@@ -60,8 +60,8 @@ ORA_L, ORA_D = [255, 156, 30, 255], [104, 66, 16, 255]            # a lamp lit a
 
 W = []
 # ---- the panels: the speed window and the small-digits window (one layer; black everywhere else covers BMW's gauges)
-SW_X, SW_Y, SW_W, SW_H = 730, 252, 460, 186              # the speed window
-OD_X, OD_Y, OD_W, OD_H = 745, 466, 430, 96               # the small-digits window
+SW_X, SW_Y, SW_W, SW_H = 730, 266, 460, 186              # the speed window
+OD_X, OD_Y, OD_W, OD_H = 745, 486, 430, 96               # the small-digits window
 panels = [
     {'id': 'speed_win', 'x': SW_X, 'y': SW_Y, 'w': SW_W, 'h': SW_H, 'head': 0, 'radius': 18, 'border': 2},
     {'id': 'odo_win', 'x': OD_X, 'y': OD_Y, 'w': OD_W, 'h': OD_H, 'head': 0, 'radius': 14, 'border': 2},
@@ -96,7 +96,7 @@ W.append(text('trip', OD_X + OD_W - 22, OYC, 180, 'x_odo', '{{tripDist}}', WHITE
 W.append(text('rng_lbl', OD_X + 26, OD_Y + 22, 120, 'x_lab', 'RANGE', DIMTXT, 'left'))
 W.append(text('trip_lbl', OD_X + OD_W - 22, OD_Y + 22, 120, 'x_lab', 'TRIP', DIMTXT, 'right'))
 # ---- the coolant bar (C .. H) low on the left, the fuel bar (E .. F) low on the right
-GY, GW, GH = 548, 330, 32
+GY, GW, GH = 596, 330, 32
 LX = 190
 W.append(icon('therm', 'therm', LX + 16, GY - 52, 50, WHITE))
 W.append(text('c_lbl', LX - 46, GY + GH / 2, 60, 'x_cf', 'C', WHITE, 'center'))
