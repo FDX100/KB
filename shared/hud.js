@@ -308,6 +308,7 @@ const Waze = require('./waze');
 const Screen = require('./screen');
 const badges = require('./badges');
 const { Logos } = require('./logos');
+const { SafeStart } = require('./safe_start');
 const { fit: pngFit } = require('./png');
 const Runs = require('./runs');
 const tz = require('./tz');
@@ -556,6 +557,7 @@ class HudApp {
         this.label = this.config.statusName || 'HUD';
         this.layoutTheme = null;         // the active layout's own theme, if it has one
         this.layouts = new Layouts(ctx.dataDir, this.log, this.size);
+        this.safe = new SafeStart(ctx.dataDir, ctx.settings.file, this.log);   // the heavy themes stay locked for the first start (safe_start.js)
         this.logos = new Logos(ctx.dataDir, this.log);        // the owner's badge logo PNGs (logos.js)
         this.widgets = new Map();        // widget.id -> { w, ref, sheet | null, last, lastPaint }
         this.sheets = [];                // the packed image layers: { ref, klass, z, x, y, w, h, members, buf }
@@ -1167,6 +1169,10 @@ class HudApp {
     /** fn(text) whenever the status line changes. */
     onStatus(fn) { this.statusListeners.push(fn); if (this.lastStatus) fn(this.lastStatus); }
 
+    /** Whether a theme is locked now (the first start after an installation, safe_start.js). */
+    themeLocked(name) { return !!(this.safe && this.safe.isLocked(name)); }
+    lockText() { return this.safe ? this.safe.text() : ''; }
+
     /** The layout name to show now: per drive mode when that's on and known, else the plain setting. */
     _layoutName() {
         if (this.screen && this.screen.yielded) return 'off';
@@ -1176,6 +1182,10 @@ class HudApp {
     }
     /** The layout the driver picked for now, before anything that makes us step aside. */
     _chosenName() {
+        const n = this._chosenNameRaw();
+        return this.safe && this.safe.isLocked(n) ? 'apex' : n;       // a locked theme is never drawn
+    }
+    _chosenNameRaw() {
         if (this.setting('byMode') === true && this.powertrain && POWER_KEY[this.powertrain]) {
             const p = this.setting(POWER_KEY[this.powertrain]);
             if (p && p !== 'same') return p;
@@ -1220,6 +1230,7 @@ class HudApp {
     }
     /** The vehicle state changed: drop at switch-off, build again once it is back to normal. */
     _vehicleState() {
+        if (this.safe) this.safe.carOn(this.vstate.state);
         if (this.vstate.drop()) this._rebuild();
         else if (!this.vstate.hold() && (this.vehHeld || this.vehPending)) this._rebuild();
         else this._status();

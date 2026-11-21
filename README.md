@@ -98,7 +98,8 @@ The app looks at the folder every few seconds, so no restart is needed. **Badge 
 
 ## If something goes wrong
 
-- **Black cluster, or nothing shows, the first time:** open the app, Settings tab, **Restart cluster** (parked). Then pick a theme on the Themes tab. A fresh install now shows the theme in every drive mode; with "Change with the drive mode" on, a drive mode you left on *BMW's own* shows BMW's cluster.
+- **Safe first start:** Alpina, Live Cockpit and Concept, the heaviest themes for the cluster's GPU, are locked (greyed out with a padlock) for the first start after a fresh install, so the first thing you see is a light theme. They unlock the next time the app starts, or the next time the car starts. An install that already has saved settings is not locked.
+- **Black cluster, or nothing shows, the first time:** tap **Cluster black? Restart it** at the top of the Themes tab (parked; the same button is on the Settings tab). Then pick a theme on the Themes tab. A fresh install now shows the theme in every drive mode; with "Change with the drive mode" on, a drive mode you left on *BMW's own* shows BMW's cluster.
 - **Slow or steppy needles:** Settings tab, **Cluster update rate**: Smooth is 20 a second, Balanced 12, Light 8. If a heavy theme lags, try a lighter one (Apex, Classic, Eco, Blue Dials, Night Drive, Hybrid).
 - **The cluster dips or restarts while driving:** note the theme, the app version and the Settings tab's last line (it now says when the app redrew many times, or lost its connection to cluster-render), and open an issue with the cluster-render log (`/var/opt/cluster-render/log/cluster-render.log`).
 

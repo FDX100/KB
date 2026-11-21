@@ -105,6 +105,11 @@ class Page {
     }
     /** the layout showing now, else the one meant to (before cluster-render answers) */
     shownName() { return this.hud.activeName || this.hud._layoutName() || 'off'; }
+    /** a theme that is locked for the first start (safe_start.js) */
+    isLocked(v) { return !!(this.hud.themeLocked && this.hud.themeLocked(v)); }
+    /** a line over the Themes tab for a few seconds (what a tap on a locked theme says) */
+    say(text) { this.toast = { text, until: Date.now() + 5000 }; this.kick(); setTimeout(() => this.kick(), 5200); }
+
     /** the layouts a theme card can show (not the calibration ones) */
     looks() { return ((this.item('inSport') || {}).options || []).map((o) => o[0]); }
     /**
@@ -113,6 +118,7 @@ class Page {
      * the screen (the other app steps aside), Cancel changes nothing. Any pick here ends our own stepping aside.
      */
     chooseLayout(key, v) {
+        if (this.isLocked(v)) { this.say(this.layoutName(v) + ' is locked: ' + (this.hud.lockText() || 'it unlocks at the next start')); return; }
         const scr = this.hud.screen;
         if (v === 'off' || v === 'same' || !scr || !scr.otherOn()) {
             if (scr) scr.release();
@@ -320,6 +326,9 @@ class Page {
     lookHero(cv, bottom) {
         const shown = this.shownName();
         label(cv, CX, 70, 'Now showing');
+        this.restartPill(cv, CX + 160, 44);
+        if (this.toast && Date.now() < this.toast.until) cv.text(this.toast.text, CX + 160 + 330, 69, 15, '#e0a340', { literal: true });
+        else if (this.hud.lockText && this.hud.lockText()) cv.text(this.hud.lockText(), CX + 160 + 330, 69, 14, C.dim, { literal: true });
         const pw = 523, ph = 196, px = CX, py = 82;
         this.picture(cv, shown, 'big', px, py, pw, ph);
         // right: name, tag line, the drive modes side by side
@@ -341,6 +350,11 @@ class Page {
             this.picture(cv, v, 'small', x + (gw - iw) / 2, yy + 8, iw, ih);
             cv.text(this.layoutName(v), x + 12, yy + gh - 10, 16, '#ffffff', { font: 'bold', literal: true });
             cv.text(this.tag(v), x + gw - 12, yy + gh - 10, 13, C.dim, { align: 'right', literal: true });
+            if (this.isLocked(v)) {          // the first start: dimmed, with a padlock
+                cv.roundRect(x, yy, gw, gh, 16, '#000000b8');
+                lockIcon(cv, x + gw / 2, yy + gh / 2 - 12, '#e0a340');
+                cv.text('Locked', x + gw / 2, yy + gh / 2 + 22, 15, '#e0a340', { align: 'center', font: 'bold', literal: true });
+            }
             cv.target(x, yy, gw, gh, () => this.chooseLayout(this.lookKey(), v), 'look:' + v, 16);
         });
     }
@@ -737,6 +751,19 @@ class Page {
         });
     }
 
+    /** The Themes tab's own "Restart cluster" button: for a cluster that went black, tap it (parked). Same as the Settings tab's row. */
+    restartPill(cv, x, y) {
+        if (!this.hud.restartCluster) return;
+        const busy = this.hud.isRestarting && this.hud.isRestarting();
+        const d = this.hud.car && this.hud.car.data(), moving = !!d && !d.demo && !(d.speed <= 2);
+        const text = busy ? 'Restarting...' : moving ? 'Stop the car first' : 'Cluster black? Restart it', h = 36;
+        const w = cv.textWidth(text, 16, { font: 'bold', literal: true }) + 40;
+        cv.roundRect(x, y, w, h, h / 2, busy || moving ? '#ffffff12' : A('#e0a340', 0.22));
+        cv.strokeRoundRect(x, y, w, h, h / 2, 1, busy || moving ? '#ffffff22' : '#e0a340');
+        cv.text(text, x + w / 2, y + 24, 16, busy || moving ? C.dim : '#f4c27a', { align: 'center', font: 'bold', literal: true });
+        if (!busy && !moving) cv.target(x, y, w, h, () => { if (this.hud.restartCluster()) { this.kick(); setTimeout(() => this.kick(), 5000); setTimeout(() => this.kick(), 25000); } }, 'restart:themes', h / 2);
+    }
+
     /** "Restart cluster": our layers go for a few seconds (BMW's own cluster shows), then the theme is drawn again. */
     restartRow(cv, x, y, w, h) {
         const busy = this.hud.isRestarting && this.hud.isRestarting();
@@ -823,8 +850,9 @@ class Page {
             if (!clip && max > 0 && (ry < vTop || ry1 > vTop + vh)) return;      // no clipping here: whole rows only
             const sel = o[0] === v;
             if (sel) cv.roundRect(x + 12, ry, w - 24, rh - 6, 12, A(C.blue, 0.35));
-            const text = p.fmt ? p.fmt(o[0]) : o[1] !== null ? o[1] : fmtInt(o[0]) + ' rpm';
-            cv.text(text, x + 30, ry + 34, 20, sel ? '#ffffff' : C.text, { font: sel ? 'bold' : 'label', literal: true });
+            const lockedRow = LOOK_KEYS.indexOf(p.key) >= 0 && this.isLocked(o[0]);
+            const text = (p.fmt ? p.fmt(o[0]) : o[1] !== null ? o[1] : fmtInt(o[0]) + ' rpm') + (lockedRow ? '  (locked)' : '');
+            cv.text(text, x + 30, ry + 34, 20, lockedRow ? C.dim : sel ? '#ffffff' : C.text, { font: sel ? 'bold' : 'label', literal: true });
             if (sel) check(cv, x + w - 50, ry + 26, '#ffffff');
             const ty0 = Math.max(ry, vTop), ty1 = Math.min(ry1, vTop + vh);
             if (ty1 - ty0 >= 14) cv.target(x + 12, ty0, w - 24, ty1 - ty0, () => {
@@ -878,6 +906,13 @@ class Page {
 }
 
 /* ---------- small pieces ---------- */
+/** A small padlock centred at (x, y). */
+function lockIcon(cv, x, y, c) {
+    cv.arc(x, y - 4, 7, 10, 180, 360, c);
+    cv.line(x - 8.5, y - 4, x - 8.5, y + 1, 3, c);
+    cv.line(x + 8.5, y - 4, x + 8.5, y + 1, 3, c);
+    cv.roundRect(x - 13, y, 26, 19, 4, c);
+}
 const LOOK_KEYS = ['hudLayout', 'inComfort', 'inSport', 'inEco', 'inHybrid', 'inElectric'];
 const WARN_KEYS = ['warnOil', 'warnCoolant', 'warnBoost'];
 /** A warning limit as the page shows it, in the display units: "266 °F", "1.2 bar", "Off". */

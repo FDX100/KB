@@ -63,7 +63,10 @@ const ctx = {
 };
 const hud = quiet({
     activeName: 'apex', playDemo() {}, demoPlaying: () => false, demoBlocked: () => null, mapLayout: true,
-    setting: (k) => store[k], car: { data: () => ({ demo: false }) },
+    setting: (k) => store[k], car: { data: () => ({ demo: false, speed: 0 }) }, isRestarting: () => false,
+    // PREVIEW_LOCKED=1: the first start's locked themes (safe_start.js)
+    themeLocked: (n) => !!process.env.PREVIEW_LOCKED && ['alpina', 'live', 'concept'].indexOf(n) >= 0,
+    lockText: () => (process.env.PREVIEW_LOCKED ? 'Alpina, Live Cockpit and Concept unlock the next time the app or the car starts' : ''),
     waze: { info: () => ({ text: 'Map showing in the theme', up: true, ok: true }) },
     // the real logo lookup on the bench's data folder (put test PNGs in bench/.data/kurdbimmer_themes/logos/)
     logos: new (require(path.join(stage, 'logos.js')).Logos)(path.join(root, 'bench', '.data', 'kurdbimmer_themes'), { info() {}, warn() {} }),
