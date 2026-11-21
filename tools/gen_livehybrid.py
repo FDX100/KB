@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generates apps/kurdbimmer_themes/hud/layouts/livehyb.json (the Live Hybrid theme), after a photo of BMW's Live Cockpit
-Professional in a plug-in hybrid (9.jpeg): two white outlined chevron scales (the speed 0..330 km/h on the left, the revs 0..8 on the
+Professional in a plug-in hybrid (2.jpeg): two white outlined chevron scales (the speed 0..330 km/h on the left, the revs 0..8 on the
 right) with a red needle at the value, grey panels inside them with the red glow at the foot, the big speed, the drive mode with
 ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery gauge, the fuel gauge, READY, and the dark middle
 display where the Waze map opens. The white line art is drawn here from geometry (bake_lines -> hud/art/livehyb.json, shown by the ARTMASK shader); the rest is drawn live. Photo px -> layout px: x' = 960 + (x - 1060) * S, y' = (y - 322) * S.
@@ -14,7 +14,10 @@ FONT_DIR = os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'fonts')
 S = 1.245
 
 
-def L(px, py): return (round(960 + (px - 1060) * S, 1), round((py - 322) * S, 1))
+DY = -2.6                                  # the sharp photo (2.jpeg) sits this far above the first one the numbers below were read from
+
+
+def L(px, py): return (round(960 + (px - 1060) * S, 1), round((py + DY - 322) * S, 1))
 def cell(font): return json.load(open(os.path.join(FONT_DIR, font + '.json')))['cellHeight']
 
 
@@ -68,18 +71,15 @@ CYAN = [24, 208, 232, 255]
 DIM = [150, 154, 158, 255]
 
 # ---- the outlines (photo px, measured off the photo once; every line below is drawn from these numbers)
-L_OUT = [[876.8, 343.0], [845.0, 339.0], [770.2, 344.0], [700.5, 358.0], [619.0, 362.1], [578.4, 371.3], [528.4, 394.9], [488.9, 420.3], [455.0, 447.0], [420.0, 475.0],
-         [394.3, 501.3], [370.0, 530.0], [355.8, 561.2], [355.0, 600.0], [360.0, 637.0], [380.6, 677.3], [403.9, 705.4], [429.2, 745.6], [460.0, 785.0], [490.0, 815.0], [521.7, 832.5]]
-R_OUT = [[1286.7, 343.0], [1344.8, 343.0], [1429.6, 351.0], [1504.2, 361.9], [1548.9, 369.9], [1593.4, 385.1], [1629.4, 407.8], [1662.3, 432.4], [1697.3, 462.3], [1725.0, 490.0],
-         [1750.0, 520.0], [1767.0, 555.0], [1769.0, 580.6], [1765.1, 603.8], [1756.4, 637.3], [1753.1, 676.6], [1723.5, 705.4], [1695.8, 741.4], [1672.2, 772.2], [1650.0, 795.0],
-         [1629.3, 810.7], [1604.1, 817.1]]
+L_OUT = [(877.8, 337.7), (845.0, 336.6), (769.7, 342.6), (699.8, 354.6), (618.6, 360.7), (576.9, 369.7), (526.5, 394.0), (486.9, 420.0), (452.2, 446.1), (418.3, 475.7), (395.8, 505.2), (368.3, 531.5), (355.3, 563.7), (356.0, 602.5), (367.6, 637.1), (387.8, 675.3), (404.7, 707.4), (430.8, 747.0), (461.9, 786.0), (492.1, 814.8), (523.4, 832.0)]
+R_OUT = [(1286.7, 339.1), (1345.0, 341.6), (1430.1, 349.6), (1504.9, 360.1), (1549.9, 368.6), (1594.7, 385.0), (1631.1, 407.9), (1663.9, 433.1), (1699.0, 463.1), (1726.8, 490.9), (1750.8, 522.1), (1768.0, 557.3), (1769.0, 583.2), (1764.1, 606.2), (1751.5, 639.1), (1751.3, 678.3), (1718.3, 703.4), (1693.4, 742.2), (1669.9, 772.9), (1648.3, 795.7), (1627.6, 809.7), (1603.1, 815.8)]
 
 
-POWER_O = [(1463.2, 474.2), (1480.6, 495.1), (1496.8, 514.8), (1510.6, 533.4), (1520.4, 551.8), (1524.8, 570.8), (1522.7, 591.5), (1514.3, 614.9), (1500.7, 642.4), (1484.1, 673.3)]
-B_OUT = [(1788.1, 676.2), (1797.4, 693.4), (1803.7, 713.0), (1805.0, 734.9), (1800.9, 757.2), (1792.1, 778.5), (1779.3, 798.1), (1762.9, 815.1), (1743.6, 827.0), (1722.5, 832.5), (1700.6, 833.1)]
-F_O = [(306.8, 677.0), (295.6, 695.4), (290.6, 715.6), (293.7, 737.6), (303.5, 759.9), (318.6, 781.8), (338.3, 801.5), (361.4, 817.8), (386.0, 830.1), (410.6, 837.9), (435.0, 842.0)]
-LEFT_BOTTOM = [(521.7, 832.5), (545, 835.5), (600, 837.5), (700, 837), (790, 836.5), (873, 834), (895, 824), (913, 814), (950, 811), (997, 810)]
-RIGHT_BOTTOM = [(1177, 808), (1230, 808.5), (1258, 809), (1275, 820), (1293, 832), (1340, 836), (1450, 837), (1560, 834), (1600, 826)]
+POWER_O = [(1465.5, 474.9), (1482.9, 495.8), (1498.8, 515.9), (1514.0, 533.8), (1525.5, 552.4), (1529.8, 573.1), (1524.6, 594.6), (1514.3, 617.5), (1494.5, 641.8), (1478.8, 673.1)]
+B_OUT = [(1792.9, 676.2), (1802.9, 693.7), (1808.6, 714.7), (1809.0, 737.8), (1803.8, 760.7), (1792.5, 781.3), (1779.7, 801.0), (1763.5, 818.5), (1744.6, 831.9), (1722.7, 836.6), (1700.5, 831.7)]
+F_O = [(303.4, 677.5), (289.1, 695.3), (285.1, 718.0), (291.3, 740.9), (302.2, 763.2), (316.3, 786.3), (333.5, 809.8), (357.3, 827.3), (388.8, 825.8), (409.7, 844.4), (434.8, 845.6)]
+LEFT_BOTTOM = [(522.1, 831.6), (545.2, 835.6), (600.1, 832.6), (700.0, 832.6), (789.9, 831.6), (872.2, 829.6), (893.4, 823.5), (911.4, 809.8), (949.8, 808.6), (996.9, 807.6)]
+RIGHT_BOTTOM = [(1177.1, 804.6), (1230.1, 803.6), (1259.7, 804.8), (1278.6, 817.2), (1294.9, 826.8), (1340.3, 830.6), (1450.0, 839.6), (1560.0, 836.6), (1598.6, 821.7)]
 
 
 def inner(pts, d, toward):
@@ -355,7 +355,7 @@ def gauge_masks():
         dr.polygon([((x - x0) * k, (y - y0) * k) for x, y in lp], fill=255)
         cov = finish(im, w, h)                                                           # full size: the edges stay crisp
         gx, gy = np.meshgrid(np.arange(w) + 0.5 + x0, np.arange(h) + 0.5 + y0)
-        px = 1060 + (gx - 960) / S; py = 322 + gy / S
+        px = 1060 + (gx - 960) / S; py = 322 + gy / S - DY
         t = np.clip(par(px, py), 0, 1)
         put_art('lh_' + name, cov)
         put_art('lh_' + name + '_t', np.round(t * 255).astype(np.uint8))
@@ -390,18 +390,16 @@ for gid, (gx, gy, gw, gh) in GLOWS.items():
 # the white line art baked from the photo
 W.append({'id': 'art', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb', 'color': WHITE})
 # ---- the scale numbers
-SPEED = [(0, (657, 782)), (30, (570, 784)), (60, (514, 726)), (90, (466, 654)), (120, (437, 582)), (150, (476, 514)), (180, (536, 464)),
-         (210, (588, 422)), (240, (655, 400)), (270, (730, 387)), (300, (802, 384)), (330, (875, 380))]
+SPEED = [(0, (658, 781)), (30, (573, 782)), (60, (514, 726)), (90, (467, 652)), (120, (440, 580)), (150, (478, 512)), (180, (538, 462)), (210, (590, 421)), (240, (658, 400)), (270, (734, 386)), (300, (807, 382)), (330, (879, 378))]
 for k, (v, p) in enumerate(SPEED):
     W.append(text('sk%d' % v, p, 100, 'h_scale', str(v), WHITE, 'center', toggle='!units=us'))
     W.append(text('sm%d' % (k * 20), p, 100, 'h_scale', str(k * 20), WHITE, 'center', toggle='units=us'))
-REV = [(1, (1600, 752)), (2, (1655, 665)), (3, (1687, 575)), (4, (1647, 500)), (5, (1575, 440)), (6, (1485, 407)), (7, (1390, 390)), (8, (1287, 385))]
+REV = [(1, (1600, 749)), (2, (1654, 665)), (3, (1690, 574)), (4, (1648, 498)), (5, (1575, 440)), (6, (1486, 404)), (7, (1392, 386)), (8, (1290, 382))]
 for v, p in REV:
     W.append(text('rv%d' % v, p, 60, 'h_scale', str(v), WHITE, 'center'))
 # ---- the needles: where each scale's ticks meet its outline (photo px)
-SPD_MARKS = [(0, (598, 837)), (1, (500, 822)), (2, (440, 752)), (3, (392, 677)), (4, (355, 585)), (5, (394, 502)), (6, (455, 447)), (7, (528, 395)), (8, (619, 362)),
-             (9, (700, 358)), (10, (790, 343)), (11, (877, 343))]
-REV_MARKS = [(0, (1550, 825)), (1, (1652, 794)), (2, (1723, 706)), (3, (1769, 581)), (4, (1697, 462)), (5, (1629, 408)), (6, (1549, 370)), (7, (1430, 351)), (8, (1345, 343))]
+SPD_MARKS = [(0, (523.4, 832.0)), (1, (502.3, 820.4)), (2, (438.1, 756.1)), (3, (390.5, 680.4)), (4, (355.7, 587.6)), (5, (395.2, 505.8)), (6, (452.1, 446.2)), (7, (525.9, 394.4)), (8, (618.2, 360.8)), (9, (699.6, 354.6)), (10, (789.6, 341.0)), (11, (877.3, 337.7))]
+REV_MARKS = [(0, (1603.1, 815.8)), (1, (1649.6, 794.3)), (2, (1717.3, 704.9)), (3, (1768.9, 583.6)), (4, (1698.6, 462.7)), (5, (1630.8, 407.7)), (6, (1550.4, 368.8)), (7, (1430.6, 349.7)), (8, (1345.4, 341.6))]
 bake_lines()
 W.append({'id': 'spd_needle', 'type': 'pneedle', 'class': 'content', 'z': 3, 'x': 0, 'y': 0, 'w': 960, 'h': 660, 'conn': 3, 'signal': 'speed',
           'marks': [[30 * i, *L(*p)] for i, p in SPD_MARKS], 'marksUs': [[20 * i, *L(*p)] for i, p in SPD_MARKS], 'length': 78, 'width': 3.4, 'glow': 12, 'color': 'hot'})
@@ -448,7 +446,7 @@ W.append({'id': 'strip_ev', 'type': 'text', 'z': 3, 'x': 1752, 'y': 672, 'w': 10
 W.append({'id': 'strip_ev_u', 'type': 'text', 'z': 3, 'x': 1858, 'y': 678, 'w': 50, 'h': 27, 'text': '{{u:dist}}', 'font': 'e_head', 'color': CYAN, 'align': 'left', 'stripRow': 'r'})
 
 LAY = {'schemaVersion': 2, 'name': 'Live Hybrid', 'theme': 'livehyb', 'packWaste': 3, 'mapLive': False,
-       '_about': "Live Hybrid cluster, generated by tools/gen_livehybrid.py (edit that and regenerate), after a photo of BMW's Live Cockpit Professional in a plug-in hybrid (9.jpeg): white outlined chevron scales (the speed 0 to 330 km/h on the left, the revs 0 to 8 on the right) with a red needle at the value, grey panels with the red glow at their foot, the big speed, the drive mode under ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery and fuel gauges, READY, and the dark middle display, where the Waze map opens while 'Show Waze map inside the theme' is on. The line art is drawn from geometry by the generator (hud/art/livehyb.json). Black covers BMW's gauges. Widget reference: shared/hud.js header.",
+       '_about': "Live Hybrid cluster, generated by tools/gen_livehybrid.py (edit that and regenerate), after a photo of BMW's Live Cockpit Professional in a plug-in hybrid (2.jpeg): white outlined chevron scales (the speed 0 to 330 km/h on the left, the revs 0 to 8 on the right) with a red needle at the value, grey panels with the red glow at their foot, the big speed, the drive mode under ELECTRIC / HYBRID, the power meter with its kW, the electric range, the battery and fuel gauges, READY, and the dark middle display, where the Waze map opens while 'Show Waze map inside the theme' is on. The line art is drawn from geometry by the generator (hud/art/livehyb.json). Black covers BMW's gauges. Widget reference: shared/hud.js header.",
        'widgets': W}
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     json.dump(LAY, f, indent=2, ensure_ascii=False)
