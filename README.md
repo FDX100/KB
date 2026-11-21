@@ -68,7 +68,7 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
 - **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab.
-- **Lamps (Arc Digital):** ABS and BRAKE light when the car brakes (0.65 g and 0.2 g), the oil lamp over the oil limit and the engine lamp over the coolant limit or at the redline (limits on the Alerts tab), the battery lamp under 15 % hybrid battery, MAINT REQ'D under 1.7 bar in a tyre, EPS while the car moves on the electric motor alone, and the key lamp while the car is ready.
+- **ABS lamp (Arc Digital):** dim until the car brakes hard (0.65 g or more), then it lights.
 - **Badges and logos:** every theme shows your model badge, as text or as your own logo PNG (see Badges and logos below).
 - **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).

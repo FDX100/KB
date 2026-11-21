@@ -120,7 +120,7 @@ CLUSTER_FONTS = [
     ('z_unit', 'Orbitron[wght].ttf', 28, UPPER + DIGITS + '/ .', 0, 'Bold'),
     ('z_small', 'Barlow-Medium.ttf', 28, UPPER + LOWER + DIGITS + '/ .%°+-:', 0),
     # Arc Digital (after a digital sports-car cluster): 7-segment digits, wide Michroma numbers and small Outfit print
-    ('x_speed', 'DSEG7Classic-Bold.ttf', 130, DIGITS + '- ', 0),
+    ('x_speed', 'DSEG7Classic-Bold.ttf', 152, DIGITS + '- ', 0),
     ('x_odo', 'DSEG7Classic-Bold.ttf', 47, DIGITS + '.- ', 0),
     ('x_num', 'Michroma-Regular.ttf', 54, DIGITS, 1),
     ('x_cf', 'Michroma-Regular.ttf', 42, 'CHEF', 0),

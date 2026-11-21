@@ -4,7 +4,7 @@
 end) with white tick marks and the numbers 0..9 inside it, a seven-segment speed in a dark window (mph / km/h beside it), a small
 window of seven-segment digits under it (here the range and the trip), the coolant bar with C / H on the left and the fuel bar with
 E / F on the right, the warning icons (dim, as the unlit ghosts of the real ones), ABS, the two button pills and the small print.
-The photo is scaled 2.3 times and centred, so the arc runs nearly the whole width of the cluster; the button pills are drawn nearer the middle than in the photo so they stay on the screen. The lamps (ABS, brake, battery, oil, check engine, key, maintenance, EPS) light with what the car does (hud.js _lamp). No Waze window. Edit this and regenerate."""
+The rev arc and its numbers are the photo scaled 2.3 times and centred, so the arc runs nearly the whole width of the cluster. The rest is laid out afresh with room between the parts: a big speed window under the arc, the small digits under it, the coolant and fuel gauges low on the two sides, the ABS lamp (lights on hard braking, hud.js _lamp) top left. The button pills, the small print and the row of warning lamps of the photo are left out. No Waze window. Edit this and regenerate."""
 import json, math, os, sys
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -54,21 +54,17 @@ def line(i, x, y, w, h, color, z=2):
 
 
 WHITE = [236, 238, 240, 255]
+DIMTXT = [150, 154, 152, 255]
 GHOST = [66, 68, 66, 255]
-DIM = [150, 154, 152, 255]
-RED_L, ORA_L, GRN_L = [240, 44, 32, 255], [255, 156, 30, 255], [70, 235, 90, 255]            # a lamp lit
-RED_D, ORA_D, GRN_D = [96, 24, 20, 255], [104, 66, 16, 255], [26, 84, 38, 255]               # and unlit (a ghost)
+ORA_L, ORA_D = [255, 156, 30, 255], [104, 66, 16, 255]            # a lamp lit and unlit (a ghost)
 
 W = []
-# ---- the panels: the speed window, the small-digits window, the button pills (one layer; black everywhere else covers BMW's gauges)
-UP = 16            # the speed window sits this much higher than the photo's: off the small digits under it, still under the rev numbers
-UP_ODO = 0         # the small-digits window stays where the photo has it
-PILL_H = round(K * 44)
+# ---- the panels: the speed window and the small-digits window (one layer; black everywhere else covers BMW's gauges)
+SW_X, SW_Y, SW_W, SW_H = 730, 252, 460, 186              # the speed window
+OD_X, OD_Y, OD_W, OD_H = 745, 466, 430, 96               # the small-digits window
 panels = [
-    {'id': 'speed_win', 'x': X(432), 'y': Y(178) - UP, 'w': round(K * 176), 'h': round(K * 69), 'head': 0, 'radius': 16, 'border': 2},
-    {'id': 'odo_win', 'x': X(432), 'y': Y(253) - UP_ODO, 'w': round(K * 180), 'h': round(K * 39), 'head': 0, 'radius': 14, 'border': 2},
-    {'id': 'pill_l', 'x': 24, 'y': Y(298), 'w': 204, 'h': PILL_H, 'head': 0, 'radius': PILL_H // 2, 'border': 2},
-    {'id': 'pill_r', 'x': 1692, 'y': Y(303), 'w': 204, 'h': PILL_H, 'head': 0, 'radius': PILL_H // 2, 'border': 2},
+    {'id': 'speed_win', 'x': SW_X, 'y': SW_Y, 'w': SW_W, 'h': SW_H, 'head': 0, 'radius': 18, 'border': 2},
+    {'id': 'odo_win', 'x': OD_X, 'y': OD_Y, 'w': OD_W, 'h': OD_H, 'head': 0, 'radius': 14, 'border': 2},
 ]
 W.append({'id': 'frame', 'type': 'boxes', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg', 'boxes': panels})
 # ---- the rev arc, its slats, ticks and zones (shaders.js SEGARC)
@@ -80,57 +76,48 @@ W.append({'id': 'tach', 'type': 'segarc', 'class': 'content', 'z': 2, 'x': 230, 
 NUM = [(265, 219), (294, 204), (335, 187), (381, 173), (426, 162), (473, 156), (525, 155), (590, 160), (665, 178), (754, 213)]
 for n, (px, py) in enumerate(NUM):
     W.append(text('n%d' % n, X(px), Y(py), 90, 'x_num', str(n), WHITE, 'center'))
-W.append(text('x1000', X(278), Y(223), 340, 'x_lab', 'x1000r/min', WHITE, 'left'))
+W.append(text('x1000', X(278) + 10, Y(223) + 34, 340, 'x_lab', 'x1000r/min', WHITE, 'left'))
 # ---- the speed: unlit ghost 8s under the lit digits, the unit beside it
-SX = X(595)
-W.append(text('speed_ghost', SX, Y(213) - UP, 380, 'x_speed', '888', GHOST, 'right'))
-W.append(text('speed', SX, Y(213) - UP, 380, 'x_speed', '{{speed}}', WHITE, 'right'))
-W.append(text('mph_on', X(618), Y(225) - UP, 130, 'x_unit', 'mph', WHITE, 'left', toggle='units=us'))
-W.append(text('mph_off', X(618), Y(225) - UP, 130, 'x_unit', 'mph', [96, 100, 98, 255], 'left', toggle='!units=us'))
-W.append(text('kmh_on', X(618), Y(244) - UP, 140, 'x_unit', 'km/h', WHITE, 'left', toggle='!units=us'))
-W.append(text('kmh_off', X(618), Y(244) - UP, 140, 'x_unit', 'km/h', [40, 74, 44, 255], 'left', toggle='units=us'))
-# ---- the small digits: the range and the trip
-W.append(text('odo_ghost', X(526), Y(278) - UP_ODO, 260, 'x_odo', '888888', GHOST, 'right', spacing=-5))
-W.append(text('odo', X(526), Y(278) - UP_ODO, 260, 'x_odo', '{{range}}', WHITE, 'right', spacing=-5))
-W.append(text('trip_ghost', X(608), Y(278) - UP_ODO, 180, 'x_odo', '888.8', GHOST, 'right', spacing=-5))
-W.append(text('trip', X(608), Y(278) - UP_ODO, 180, 'x_odo', '{{tripDist}}', WHITE, 'right', spacing=-5))
-W.append(text('trip_lbl', X(608), Y(259) - UP_ODO, 180, 'x_lab', 'TRIP', WHITE, 'right'))
-# ---- the coolant bar (C .. H) on the left, the fuel bar (E .. F) on the right, set lower than in the photo (DY px) so they leave the dial clear
-DY = 72
-W.append(icon('therm', 'therm', X(207), Y(215) + DY, 46, WHITE))
-W.append(text('c_lbl', X(170), Y(236) + DY, 60, 'x_cf', 'C', WHITE, 'center'))
-W.append(text('h_lbl', X(318), Y(237) + DY, 60, 'x_cf', 'H', WHITE, 'center'))
-W.append(meter('temp', X(185), Y(232) + DY, K * 115, K * 11, 'coolant', 40, 130, 8, [[206, 208, 206, 255], [150, 24, 20, 255], [150, 24, 20, 255]], [0.72, 1.0]))
-W.append(line('temp_line', X(185), Y(250) + DY, K * 115, 3, WHITE))
-W.append(icon('pump', 'fuel', X(843), Y(221) + DY, 50, WHITE))
-W.append(text('e_lbl', X(727), Y(242) + DY, 60, 'x_cf', 'E', WHITE, 'center'))
-W.append(text('f_lbl', X(870), Y(242) + DY, 60, 'x_cf', 'F', WHITE, 'center'))
-W.append(meter('fuel', X(750), Y(235) + DY, K * 107, K * 12, 'fuel', 0, 1, 20, [[210, 40, 30, 255], [206, 208, 206, 255], [206, 208, 206, 255]], [0.06, 1.0], conn=2))
-W.append(line('fuel_line', X(750), Y(252) + DY, K * 107, 3, WHITE))
-W.append(line('fuel_tick', X(803) - 1.5, Y(252) + DY, 3, K * 7, WHITE))
-# ---- the lamps: dim ghosts until the car does what they say (hud.js _lamp)
-W.append(lamp_text('abs', 'abs', 'ABS', 118, Y(275) - 54, 110, 'x_lab', ORA_L, ORA_D))
-W.append(lamp_text('brake', 'brake', 'BRAKE', X(211), Y(328), 140, 'x_lab', RED_L, RED_D))
-W.append(lamp_icon('battery', 'battery', 'battery', X(264), Y(328), 62, RED_L, RED_D))
-W.append(lamp_icon('oil', 'oil', 'oilcan', X(318), Y(328), 62, RED_L, RED_D))
-W.append(lamp_icon('engine', 'engine', 'engine', X(371), Y(328), 64, ORA_L, ORA_D))
-W.append(lamp_icon('key', 'key', 'key', X(417), Y(328), 62, GRN_L, GRN_D))
-W.append(lamp_text('maint1', 'maint', 'MAINT', X(468), Y(321), 150, 'x_lab', ORA_L, ORA_D))
-W.append(lamp_text('maint2', 'maint', "REQ'D", X(468), Y(335), 150, 'x_lab', ORA_L, ORA_D))
-W.append(lamp_text('eps', 'eps', 'EPS', X(572), Y(330), 110, 'x_lab', ORA_L, ORA_D))
-# ---- the buttons and the small print
-W.append(text('minus', 24 + 52, Y(320), 50, 'x_lab', '-', DIM, 'center'))
-W.append(text('plus', 24 + 152, Y(320), 50, 'x_lab', '+', DIM, 'center'))
-W.append(text('sel', 1692 + 56, Y(325), 100, 'x_lab', 'SEL', DIM, 'center'))
-W.append(text('trip_btn', 1692 + 152, Y(325), 100, 'x_lab', 'TRIP', DIM, 'center'))
-W.append(text('push', X(190), Y(356), 300, 'x_lab', 'PUSH CANCEL', DIM, 'left'))
-W.append(text('mphkmh', X(793), Y(360), 220, 'x_lab', 'mph-km/h', [100, 104, 102, 255], 'left'))
+SYC = SW_Y + SW_H / 2
+SXR = SW_X + SW_W - 26                                         # the digits end here
+W.append(text('speed_ghost', SXR, SYC, 420, 'x_speed', '888', GHOST, 'right'))
+W.append(text('speed', SXR, SYC, 420, 'x_speed', '{{speed}}', WHITE, 'right'))
+UX = SW_X + SW_W + 28
+W.append(text('mph_on', UX, SYC - 26, 140, 'x_unit', 'mph', WHITE, 'left', toggle='units=us'))
+W.append(text('mph_off', UX, SYC - 26, 140, 'x_unit', 'mph', [96, 100, 98, 255], 'left', toggle='!units=us'))
+W.append(text('kmh_on', UX, SYC + 28, 150, 'x_unit', 'km/h', WHITE, 'left', toggle='!units=us'))
+W.append(text('kmh_off', UX, SYC + 28, 150, 'x_unit', 'km/h', [40, 74, 44, 255], 'left', toggle='units=us'))
+# ---- the small digits: the range on the left, the trip on the right
+OYC = OD_Y + OD_H / 2 + 12
+W.append(text('odo_ghost', OD_X + 250, OYC, 260, 'x_odo', '888888', GHOST, 'right', spacing=-5))
+W.append(text('odo', OD_X + 250, OYC, 260, 'x_odo', '{{range}}', WHITE, 'right', spacing=-5))
+W.append(text('trip_ghost', OD_X + OD_W - 22, OYC, 180, 'x_odo', '888.8', GHOST, 'right', spacing=-5))
+W.append(text('trip', OD_X + OD_W - 22, OYC, 180, 'x_odo', '{{tripDist}}', WHITE, 'right', spacing=-5))
+W.append(text('rng_lbl', OD_X + 26, OD_Y + 22, 120, 'x_lab', 'RANGE', DIMTXT, 'left'))
+W.append(text('trip_lbl', OD_X + OD_W - 22, OD_Y + 22, 120, 'x_lab', 'TRIP', DIMTXT, 'right'))
+# ---- the coolant bar (C .. H) low on the left, the fuel bar (E .. F) low on the right
+GY, GW, GH = 548, 330, 32
+LX = 190
+W.append(icon('therm', 'therm', LX + 16, GY - 52, 50, WHITE))
+W.append(text('c_lbl', LX - 46, GY + GH / 2, 60, 'x_cf', 'C', WHITE, 'center'))
+W.append(meter('temp', LX, GY, GW, GH, 'coolant', 40, 130, 9, [[206, 208, 206, 255], [150, 24, 20, 255], [150, 24, 20, 255]], [0.72, 1.0]))
+W.append(text('h_lbl', LX + GW + 46, GY + GH / 2, 60, 'x_cf', 'H', WHITE, 'center'))
+W.append(line('temp_line', LX, GY + GH + 14, GW, 3, WHITE))
+RX = 1920 - 190 - GW
+W.append(icon('pump', 'fuel', RX + GW - 16, GY - 52, 54, WHITE))
+W.append(text('e_lbl', RX - 46, GY + GH / 2, 60, 'x_cf', 'E', WHITE, 'center'))
+W.append(meter('fuel', RX, GY, GW, GH, 'fuel', 0, 1, 20, [[210, 40, 30, 255], [206, 208, 206, 255], [206, 208, 206, 255]], [0.06, 1.0], conn=2))
+W.append(text('f_lbl', RX + GW + 46, GY + GH / 2, 60, 'x_cf', 'F', WHITE, 'center'))
+W.append(line('fuel_line', RX, GY + GH + 14, GW, 3, WHITE))
+W.append(line('fuel_tick', RX + GW / 2 - 1.5, GY + GH + 14, 3, 18, WHITE))
+# ---- the ABS lamp: a dim ghost until the car brakes hard (hud.js _lamp)
+W.append(lamp_text('abs', 'abs', 'ABS', 120, 392, 110, 'x_lab', ORA_L, ORA_D))
 for w in json.load(open(STRIP))['widgets']:
     if str(w['id']).startswith('strip_'):
         W.append(w)
 
 L = {'schemaVersion': 2, 'name': 'Arc Digital', 'theme': 'arcd', 'packWaste': 3,
-     '_about': "Arc Digital cluster, generated by tools/gen_arcd.py (edit that and regenerate), after a photo of a digital sports-car cluster (13.png), full screen: a half-circle bar of thin slats, one for every 100 rpm, lit up to the revs (green to 6000, yellow to orange, a red block at the end) with white tick marks and the numbers 0 to 9 inside it, a seven-segment speed in a dark window with mph / km/h beside it, a small window of seven-segment digits under it (the range and the trip), the coolant bar (C to H) on the left and the fuel bar (E to F) on the right, the lamps (ABS, brake, battery, oil, check engine, key, maintenance, EPS) that light with what the car does, the two button pills and the small print. No map window. Black covers BMW's gauges. Widget reference: shared/hud.js header.",
+     '_about': "Arc Digital cluster, generated by tools/gen_arcd.py (edit that and regenerate), after a photo of a digital sports-car cluster (13.png), full screen: a half-circle bar of thin slats, one for every 100 rpm, lit up to the revs (green to 6000, yellow to orange, a red block at the end) with white tick marks and the numbers 0 to 9 inside it; under it a big seven-segment speed in a dark window with mph / km/h beside it, and a window of seven-segment digits (the range and the trip); the coolant bar (C to H) low on the left and the fuel bar (E to F) low on the right, and the ABS lamp that lights on hard braking. No map window. Black covers BMW's gauges. Widget reference: shared/hud.js header.",
      'widgets': W}
 with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     json.dump(L, f, indent=2, ensure_ascii=False)
