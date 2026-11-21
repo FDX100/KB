@@ -1089,28 +1089,78 @@
       "align": "left"
     },
     {
-      "id": "power_bar",
-      "type": "arc",
+      "id": "power_gauge",
+      "type": "gaugemask",
       "class": "content",
       "z": 2,
-      "x": 1286,
-      "y": 173,
-      "w": 285,
-      "h": 285,
+      "x": 1415,
+      "y": 183,
+      "w": 138,
+      "h": 259,
+      "conn": 2,
+      "art": "lh_power",
+      "art2": "lh_power_t",
       "signal": "powerPct",
       "min": 0,
       "max": 100,
-      "width": 36,
+      "color": "accent",
       "trackColor": [
+        84,
+        86,
         92,
-        96,
-        104,
+        255
+      ]
+    },
+    {
+      "id": "batt_gauge",
+      "type": "gaugemask",
+      "class": "content",
+      "z": 2,
+      "x": 1757,
+      "y": 443,
+      "w": 130,
+      "h": 190,
+      "conn": 2,
+      "art": "lh_batt",
+      "art2": "lh_batt_t",
+      "signal": "hvSoc",
+      "min": 0,
+      "max": 100,
+      "color": "accent",
+      "trackColor": [
+        58,
+        62,
+        68,
+        255
+      ]
+    },
+    {
+      "id": "fuel_gauge",
+      "type": "gaugemask",
+      "class": "content",
+      "z": 2,
+      "x": 0,
+      "y": 436,
+      "w": 207,
+      "h": 215,
+      "conn": 2,
+      "art": "lh_fuel",
+      "art2": "lh_fuel_t",
+      "signal": "fuel",
+      "min": 0,
+      "max": 1,
+      "color": [
+        236,
+        238,
+        240,
         255
       ],
-      "start": 160.89,
-      "sweep": -154.43,
-      "conn": 2,
-      "color": "accent"
+      "trackColor": [
+        74,
+        76,
+        80,
+        255
+      ]
     },
     {
       "id": "pk60",
@@ -1327,30 +1377,6 @@
       "align": "center"
     },
     {
-      "id": "batt_arc",
-      "type": "arc",
-      "class": "content",
-      "z": 2,
-      "x": 1670,
-      "y": 385,
-      "w": 236,
-      "h": 236,
-      "signal": "hvSoc",
-      "min": 0,
-      "max": 100,
-      "width": 24,
-      "trackColor": [
-        60,
-        64,
-        70,
-        255
-      ],
-      "start": 196.17,
-      "sweep": -145.01,
-      "conn": 2,
-      "color": "accent"
-    },
-    {
       "id": "batt_pct",
       "type": "text",
       "z": 5,
@@ -1419,30 +1445,6 @@
         240,
         255
       ]
-    },
-    {
-      "id": "fuel_arc",
-      "type": "arc",
-      "class": "content",
-      "z": 2,
-      "x": 19,
-      "y": 439,
-      "w": 207,
-      "h": 207,
-      "signal": "fuel",
-      "min": 0,
-      "max": 1,
-      "width": 24,
-      "trackColor": [
-        60,
-        64,
-        70,
-        255
-      ],
-      "start": 161.95,
-      "sweep": 161.55,
-      "conn": 2,
-      "color": "fg"
     },
     {
       "id": "fuel_1",

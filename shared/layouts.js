@@ -39,6 +39,7 @@ const TYPES = {
     wdial: ['rings', 'start', 'sweep', 'notch', 'needleLength', 'needleColor', 'signal', 'min', 'max'],
     wgauge: ['pivot', 'arc', 'ticks', 'needle', 'pivotRadius'],
     artmask: ['art'],
+    gaugemask: ['art', 'art2', 'signal'],
     pneedle: ['signal', 'marks'],
     segarc: ['center', 'radii', 'tick', 'zones', 'angles'],
     gdial: ['rings', 'start', 'sweep', 'tail', 'majors', 'minors', 'tickLen', 'needle', 'glow', 'signal', 'min', 'max'],

@@ -2842,6 +2842,15 @@ class HudApp {
             const a = this._art(w.art, x.ci);
             c.uniform(ref, 'u_col', rgba(color(t, w.color || 'fg')));
             if (a) c.bind(ref, 'u_tex', a.ref);
+        } else if (w.type === 'gaugemask') {
+            // a gauge of any shape (shaders.js GAUGEMASK): "art" is where it is, "art2" how far along each pixel is (hud/art/*.json),
+            // "signal" with "min" / "max" the value, "color" lit, "trackColor" unlit
+            const a = this._art(w.art, x.ci), b = this._art(w.art2, x.ci);
+            x.lit = rgb(color(t, w.color || 'accent'));
+            c.uniform(ref, 'u_lit', [...x.lit, 0]);
+            c.uniform(ref, 'u_trk', rgba(color(t, w.trackColor || 'track')));
+            if (a) c.bind(ref, 'u_cov', a.ref);
+            if (b) c.bind(ref, 'u_par', b.ref);
         } else if (w.type === 'pneedle') {
             // a needle at the scale's point for a signal (shaders.js PNEEDLE): "marks" [[value, x, y], ...] in target px (a value runs
             // through them as a polyline), "metric" / "us" mark sets when the units differ, "length", "width", "toward" [x, y] (it points there)
@@ -3842,6 +3851,12 @@ class HudApp {
             x.last = key;
             x.c.uniform(x.ref, 'u_s2', [s.cells, s.slant, s.gap, q]);
             x.c.uniform(x.ref, 'u_s3', [s.orange, s.magenta, pk > q ? pk : 0, 0]);
+        } else if (w.type === 'gaugemask') {
+            const raw = this._raw(w.signal), mn = w.min === undefined ? 0 : w.min, mx = w.max === undefined ? 100 : w.max;
+            const q = Math.round((isNum(raw) ? Math.min(1, Math.max(0, (raw - mn) / (mx - mn))) : 0) * 200) / 200;
+            if (!force && q === x.last) return;
+            x.last = q;
+            x.c.uniform(x.ref, 'u_lit', [...x.lit, q]);
         } else if (w.type === 'pneedle') {
             const us = this.setting('units') === 'us';
             const marks = (us && w.marksUs) || w.marks;

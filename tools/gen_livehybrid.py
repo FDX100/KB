@@ -129,6 +129,67 @@ def thin(pts, n):
     return [pts[round(i * (len(pts) - 1) / (n - 1))] for i in range(n)]
 
 
+def gauge_masks():
+    """The three gauge shapes of the photo (the power meter's chevron band, the battery's bowl, the fuel gauge's bent band), each baked as a
+    coverage picture and a 'how far along' picture (hud/art/<name>.json and <name>_t.json, half size) for the GAUGEMASK shader."""
+    import base64, zlib
+    import numpy as np
+    from PIL import Image, ImageDraw
+    z = lambda off, pts: [(off[0] + x / 4.0, off[1] + y / 4.0) for x, y in pts]       # a zoomed crop's coordinates -> photo px
+    power = z((1360, 440), [(275, 135), (420, 130), (560, 300), (660, 420), (690, 520), (660, 650), (580, 790), (500, 935), (395, 935),
+                            (440, 800), (540, 660), (580, 560), (570, 480), (440, 330)])
+    batt = z((1640, 660), [(585, 85), (630, 150), (645, 300), (635, 400), (600, 470), (540, 550), (440, 630), (330, 668), (255, 655), (310, 520),
+                           (380, 440), (560, 425), (578, 300), (578, 160)])
+    fuel = z((260, 650), [(195, 110), (300, 102), (300, 190), (180, 205), (165, 300), (190, 420), (250, 520), (330, 600), (430, 660), (560, 690),
+                          (750, 665), (765, 725), (700, 760), (560, 765), (450, 720), (330, 640), (220, 540), (140, 420), (100, 300), (110, 200)])
+    fuel_mid = z((260, 650), [(700, 715), (560, 728), (450, 690), (330, 620), (250, 530), (190, 420), (150, 300), (150, 200), (245, 150)])
+
+    def by_y(table):                                  # the value (0..1) from a photo y, along [(y, value), ...]
+        ys = [a for a, _ in table]; vs = [b for _, b in table]
+        return lambda y: np.interp(y, ys[::-1], vs[::-1])
+
+    def along(path):                                  # the value (0..1) of the nearest point of a polyline
+        seg = np.array(path); d = np.hypot(*(seg[1:] - seg[:-1]).T); cum = np.concatenate([[0], np.cumsum(d)]) / d.sum()
+        def f(x, y):
+            best = np.full(x.shape, 1e9); val = np.zeros(x.shape)
+            for i in range(len(seg) - 1):
+                a, b = seg[i], seg[i + 1]; ab = b - a
+                u = np.clip(((x - a[0]) * ab[0] + (y - a[1]) * ab[1]) / (ab @ ab), 0, 1)
+                dist = np.hypot(x - (a[0] + u * ab[0]), y - (a[1] + u * ab[1]))
+                m = dist < best; best = np.where(m, dist, best); val = np.where(m, cum[i] + u * (cum[i + 1] - cum[i]), val)
+            return val
+        return f
+    out = {}
+    for name, poly, par in (('power', power, lambda x, y: by_y([(666.25, 0), (473.75, 1)])(y)),
+                            ('batt', batt, lambda x, y: by_y([(827.5, 0), (767.5, 0.53), (681.25, 1)])(y)),
+                            ('fuel', fuel, along(fuel_mid))):
+        lp = [L(*q) for q in poly]
+        x0 = max(0, int(min(q[0] for q in lp)) - 4); x1 = int(max(q[0] for q in lp)) + 5
+        y0 = max(0, int(min(q[1] for q in lp)) - 4); y1 = int(max(q[1] for q in lp)) + 5
+        w, h = x1 - x0, y1 - y0
+        mw, mh = (w + 1) // 2, (h + 1) // 2
+        k = 4
+        im = Image.new('L', (mw * k, mh * k), 0)
+        ImageDraw.Draw(im).polygon([((x - x0) / 2 * k, (y - y0) / 2 * k) for x, y in lp], fill=255)
+        cov = np.asarray(im.resize((mw, mh), Image.LANCZOS), dtype=np.uint8)
+        gx, gy = np.meshgrid((np.arange(mw) * 2 + 1 + x0) , (np.arange(mh) * 2 + 1 + y0))
+        px = 1060 + (gx - 960) / S; py = 322 + gy / S                                  # layout px back to photo px
+        t = np.clip(par(px, py), 0, 1)
+        for nm, arr in ((name, cov), (name + '_t', np.round(t * 255).astype(np.uint8))):
+            with open(os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'art', 'lh_' + nm + '.json'), 'w') as f:
+                json.dump({'w': mw, 'h': mh, 'z': base64.b64encode(zlib.compress(arr.tobytes(), 9)).decode()}, f)
+        out[name] = (x0, y0, w, h)
+    return out
+
+
+def gauges():
+    box = gauge_masks()
+    spec = (('power', 'powerPct', 0, 100, 'accent', [84, 86, 92, 255]), ('batt', 'hvSoc', 0, 100, 'accent', [58, 62, 68, 255]),
+            ('fuel', 'fuel', 0, 1, [236, 238, 240, 255], [74, 76, 80, 255]))
+    return [{'id': n + '_gauge', 'type': 'gaugemask', 'class': 'content', 'z': 2, 'x': box[n][0], 'y': box[n][1], 'w': box[n][2], 'h': box[n][3], 'conn': 2,
+             'art': 'lh_' + n, 'art2': 'lh_' + n + '_t', 'signal': sg, 'min': mn, 'max': mx, 'color': col, 'trackColor': trk} for n, sg, mn, mx, col, trk in spec]
+
+
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg'}]
 HOLE = {'hole': [668, 128, 628, 436], 'holeWhen': 'mapUp', 'holeInset': 0, 'holeRadius': 56}
 # the grey panels (one layer: a polygon each) and, over them, the middle display and the red glows (a second layer)
@@ -164,7 +225,7 @@ W.append(icon('drive_icon', 'gauge', (636, 546), 46, WHITE))
 W.append(text('speed', (770, 632), 220, 'm_speed', '{{speed}}', WHITE, 'center'))
 W.append(text('speed_u', (818, 608), 100, 'h_small', '{{u:speedLc}}', WHITE, 'left'))
 # ---- the power meter and the electric range
-W.append(arc('power_bar', L(1468, 668), L(1534, 575), L(1447, 478), 36, [92, 96, 104, 255], 'powerPct', 0, 100, conn=2, z=2, color='accent'))
+W.extend(gauges())
 for v, p in ((60, (1409, 471)), (40, (1454, 533)), (20, (1475, 595)), (0, (1432, 660))):
     W.append(text('pk%d' % v, p, 50, 'm_tyre', str(v), DIM, 'center'))
 W.append(text('power', (1415, 565), 110, 'm_mid', '{{powerKw}}', WHITE, 'center'))
@@ -176,12 +237,10 @@ W.append(text('evrange_u', (1520, 712), 60, 'h_small', '{{u:distLc}}', CYAN, 'le
 # ---- READY, the revs label, the battery and fuel gauges
 W.append(text('ready', (1504, 771), 170, 'z_unit', '{{ready}}', WHITE, 'center'))
 W.append(text('revs_lbl', (1450, 803), 190, 'h_small', '1/min x1000', DIM, 'center'))
-W.append(arc('batt_arc', L(1702, 806), L(1802, 758), L(1790, 674), 24, [60, 64, 70, 255], 'hvSoc', 0, 100, conn=2, z=2, color='accent'))
 W.append(text('batt_pct', (1748, 758), 90, 'z_unit', '{{hvSoc}}%', WHITE, 'center'))
 W.append(text('batt_100', (1766, 682), 50, 'm_tyre', '100', DIM, 'center'))
 W.append(text('batt_0', (1698, 797), 30, 'm_tyre', '0', DIM, 'center'))
 W.append(icon('batt_icon', 'battery', (1795, 819), 44, WHITE))
-W.append(arc('fuel_arc', L(410, 826), L(318, 775), L(345, 700), 24, [60, 64, 70, 255], 'fuel', 0, 1, conn=2, z=2, color='fg'))
 W.append(text('fuel_1', (334, 692), 30, 'm_tyre', '1', DIM, 'center'))
 W.append(text('fuel_half', (368, 757), 60, 'm_tyre', '1/2', DIM, 'center'))
 W.append(text('fuel_0', (418, 802), 30, 'm_tyre', '0', DIM, 'center'))

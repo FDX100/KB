@@ -3520,6 +3520,25 @@ void main() {
 
 // ---- the Live Hybrid theme's line art (layouts/livehyb.json, tools/livehybrid/bake_mask.py): a one-channel picture (an R8 asset
 // of the layer's own size, baked from the photo's white lines) drawn in one colour. One texture read, nothing else.
+const GAUGEMASK = `// A gauge of any shape, baked as two one-channel pictures: u_cov (where the gauge is) and u_par (how far along it each pixel is,
+// 0..1): the pixels up to u_v are lit. One cluster-render "effect" layer (GLSL ES 1.00). Straight alpha out.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform sampler2D u_cov;
+uniform sampler2D u_par;
+uniform vec4 u_lit;        // lit colour (rgb), and the value 0..1 in a
+uniform vec4 u_trk;        // unlit colour (rgba)
+void main() {
+    float c = texture2D(u_cov, v_uv).r;
+    float t = texture2D(u_par, v_uv).r;
+    vec4 col = t <= u_lit.a ? vec4(u_lit.rgb, 1.0) : u_trk;
+    gl_FragColor = vec4(col.rgb, col.a * c);
+}`;
+
 const ARTMASK = `// A baked one-channel picture drawn in one colour, in one cluster-render "effect" layer (GLSL ES 1.00).
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
@@ -3562,4 +3581,4 @@ void main() {
 }`;
 
 
-module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
