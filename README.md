@@ -70,6 +70,7 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab.
 - **ABS lamp (Arc Digital):** dim until the car brakes hard (0.65 g or more), then it lights.
 - **Badges and logos:** every theme shows your model badge, as text or as your own logo PNG (see Badges and logos below).
+- **Clean RAM** (Settings tab): once after the install, frees what the app itself holds (loaded fonts, decoded logos, its readings history), draws the theme again and collects the JavaScript heap, then shows how many MB it freed. It cannot free the head unit's other memory (that takes root), and it can be used one time only.
 - **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).
 

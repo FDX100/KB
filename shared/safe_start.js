@@ -32,6 +32,8 @@ class SafeStart {
         }
         this.starts = s.starts + 1;
         this.legacy = s.legacy === true;
+        this.ramCleaned = s.ramCleaned === true;       // "Clean RAM" is used once, after the install
+        this.ramFreed = typeof s.ramFreed === 'number' ? s.ramFreed : null;
         this.offAt = 0;
         this._save();
         this.log.info('start ' + this.starts + (this.legacy ? ' (an install in use: nothing locked)' : this.unlocked() ? ': all themes unlocked' : ': ' + LOCKED.join(', ') + ' locked until the next start'));
@@ -65,7 +67,10 @@ class SafeStart {
 
     text() { return this.unlocked() ? '' : 'Alpina, Live Cockpit and Concept unlock the next time the app or the car starts'; }
 
-    _save() { try { fs.writeFileSync(this.file, JSON.stringify({ starts: this.starts, legacy: this.legacy })); } catch (e) { this.log.warn('session save: ' + e.message); } }
+    /** "Clean RAM" (hud.js cleanRam) can be used once: it records that it was, and how many MB it freed. */
+    markRamCleaned(mbFreed) { this.ramCleaned = true; this.ramFreed = mbFreed; this._save(); }
+
+    _save() { try { fs.writeFileSync(this.file, JSON.stringify({ starts: this.starts, legacy: this.legacy, ramCleaned: this.ramCleaned, ramFreed: this.ramFreed })); } catch (e) { this.log.warn('session save: ' + e.message); } }
 }
 
 module.exports = { SafeStart, LOCKED };

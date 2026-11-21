@@ -154,6 +154,7 @@ process.on('message', (m) => {
     else if (m.t === 'drive') drive = m.value;
     else if (m.t === 'shiftTest' && hud) hud.testShift();
     else if (m.t === 'dropSockets' && hud) { hud.clients.forEach((c) => { if (c.sock) c.sock.destroy(); }); log.info('bench: every cluster-render connection dropped'); }
+    else if (m.t === 'cleanRam' && hud) log.info('bench: clean RAM ' + (hud.cleanRam() ? 'started' : 'refused (used before)'));
     else if (m.t === 'restartCluster' && hud) log.info('bench: restart cluster ' + (hud.restartCluster() ? 'started' : 'refused'));
     else if (m.t === 'nav') fakeNav.set(m.scenario);
     else if (m.t === 'demo' && hud) { if (m.play) log.info('bench: play demo ' + (hud.playDemo(m.at) ? 'started' : 'refused (' + hud.demoBlocked() + ')')); else hud.stopDemo(); }

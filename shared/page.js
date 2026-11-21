@@ -721,7 +721,8 @@ class Page {
     settingsTab(cv, bottom) {
         label(cv, CX, 70, 'Settings');
         const keys = this.cfg.settings.filter((k) => this.item(k));
-        if (this.hud.restartCluster) keys.push('@restart');      // an action, not a setting: the last row
+        if (this.hud.cleanRam) keys.push('@cleanram');           // actions, not settings: the last rows
+        if (this.hud.restartCluster) keys.push('@restart');
         const colW = (CW - 24) / 2, per = Math.ceil(keys.length / 2);
         // issue #8: the drive mode check (raw signal values, only the signals this app listens to: cfg.modeCheck)
         // under the right column while "Change with the drive mode" is on
@@ -735,6 +736,7 @@ class Page {
             const x = CX + (i < per ? 0 : colW + 24), y = 84 + (i % per) * pitch;
             if (y + h > bottom) return;
             if (k === '@restart') { this.restartRow(cv, x, y, colW, h); return; }
+            if (k === '@cleanram') { this.cleanRamRow(cv, x, y, colW, h); return; }
             const s = this.item(k);
             if (s.type === 'bool') this.toggleRow(cv, x, y, colW, s.label, k, h);
             else if (s.type === 'number') this.stepRow(cv, x, y, colW, s.label, k, null, h);
@@ -749,6 +751,17 @@ class Page {
             while (t.length > 8 && cv.textWidth(t, 15, { literal: true }) > colW) t = t.slice(0, -1);
             cv.text(t, CX + colW + 24, dy + 20 * i, 15, C.label, { literal: true });
         });
+    }
+
+    /** "Clean RAM": frees what the app holds, once after the install (hud.cleanRam); after that the row says how much it freed. */
+    cleanRamRow(cv, x, y, w, h) {
+        const safe = this.hud.safe, used = !!(safe && safe.ramCleaned), busy = this.hud.cleaningRamNow && this.hud.cleaningRamNow();
+        const base = this.rowBox(cv, x, y, w, used ? 'Clean RAM · done' + (safe.ramFreed > 0 ? ' (freed ' + safe.ramFreed + ' MB)' : '') : 'Clean RAM (once)', h);
+        const bt = busy ? 'Cleaning...' : used ? 'Used' : 'Clean', bw = cv.textWidth(bt, 16, { font: 'bold', literal: true }) + 40, bh = Math.min(36, h - 8);
+        const off = busy || used;
+        cv.roundRect(x + w - bw - 14, y + (h - bh) / 2, bw, bh, bh / 2, off ? '#ffffff12' : C.blue);
+        cv.text(bt, x + w - 14 - bw / 2, base - 1, 16, off ? C.dim : '#ffffff', { align: 'center', font: 'bold', literal: true });
+        if (!off) cv.target(x, y, w, h, () => { if (this.hud.cleanRam()) { this.kick(); setTimeout(() => this.kick(), 3000); } }, 'clean:ram', 14);
     }
 
     /** The Themes tab's own "Restart cluster" button: for a cluster that went black, tap it (parked). Same as the Settings tab's row. */

@@ -1538,6 +1538,48 @@ class HudApp {
 
     isRestarting() { return this.restarting === true; }
 
+    /**
+     * "Clean RAM" (the Settings tab), once after the install: frees what the app itself holds: the loaded font atlases, the decoded
+     * logos, the glyph atlas assets, its readings history and drive log, then draws the theme again (a Node garbage collection
+     * on top where the runtime allows one). An app can't free the head unit's other memory (that takes root). Returns the app's
+     * memory use { before, after } in MB, or null when it was used before.
+     */
+    cleanRam() {
+        if (!this.safe || this.safe.ramCleaned || this.cleaningRam) return null;
+        this.cleaningRam = true;
+        const mb = () => Math.round(process.memoryUsage().heapUsed / 1048576);     // the JS heap: what the app itself holds
+        const before = mb();
+        this.log.info('clean RAM: the app holds ' + before + ' MB of heap, freeing what it can');
+        this._guard('clean ram', () => {
+            textRaster.clearCache();
+            this.logos.cache = {}; this.logos.scanAt = 0;
+            this.atlases.clear();
+            if (this.gEnvTex) this.gEnvTex.clear();
+            this.hvHist = []; this.rebuildLog = []; this.modeDiag = {}; this.modeDiagLogged = {};
+            this._rebuild('clean RAM');
+        });
+        const done = (note) => {
+            const after = mb();
+            this.ramBefore = before; this.ramAfter = after;
+            this.safe.markRamCleaned(Math.max(0, before - after));
+            this.cleaningRam = false;
+            this.log.info('clean RAM: heap ' + before + ' MB -> ' + after + ' MB' + note);
+            this._status();
+        };
+        setTimeout(() => {
+            // a garbage collection by hand: the runtime isn't started with --expose-gc, but V8 can be told to hand out gc() at run time
+            let note = '';
+            try {
+                let gc = global.gc;
+                if (typeof gc !== 'function') { require('v8').setFlagsFromString('--expose_gc'); gc = require('vm').runInNewContext('gc'); }
+                gc(); gc(); note = ' (collected)';
+            } catch (e) { note = ' (no collection: ' + e.message + ')'; }
+            done(note);
+        }, 2500);
+        return { before };
+    }
+    cleaningRamNow() { return this.cleaningRam === true; }
+
     testShift() {
         const d = this.car.data(), sp = d.speed;
         if (isNum(sp) && sp > 3 && !d.demo) return false;

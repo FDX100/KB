@@ -511,6 +511,11 @@ const web = http.createServer(async (req, res) => {
         log('info', 'bench: shift-light test');
         res.writeHead(204); return res.end();
     }
+    if (req.method === 'POST' && url === '/clean-ram') {
+        if (!child) { res.writeHead(409); return res.end('app not running'); }
+        child.send({ t: 'cleanRam' });
+        res.writeHead(204); return res.end();
+    }
     if (req.method === 'POST' && url === '/drop-sockets') {
         // the cluster-render service going away for a moment: the app's connections are cut, and its clients reconnect by themselves
         if (!child) { res.writeHead(409); return res.end('app not running'); }

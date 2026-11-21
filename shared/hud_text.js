@@ -131,4 +131,7 @@ function tint(m, boxW, boxH, opts) {
     return out;
 }
 
-module.exports = { drawText, mask, tint, measure, loadFont };
+/** Drops every loaded font atlas (they load again when a widget next draws with them). */
+function clearCache() { loadedFonts.clear(); warnedMissing.clear(); }
+
+module.exports = { drawText, mask, tint, measure, loadFont, clearCache };
