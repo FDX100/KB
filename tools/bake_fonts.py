@@ -126,6 +126,14 @@ CLUSTER_FONTS = [
     ('x_cf', 'Michroma-Regular.ttf', 42, 'CHEF', 0),
     ('x_lab', 'Outfit[wght].ttf', 33, UPPER + LOWER + DIGITS + " '/-.+%:", 0, 'Regular'),
     ('x_unit', 'Outfit[wght].ttf', 46, 'mphkm/h', 0, 'Regular'),
+    # Live Hybrid (after the hybrid Live Cockpit): the big mode word in Orbitron Black, small Outfit print with the Ø
+    ('h_mode', 'Orbitron[wght].ttf', 54, UPPER + ' ', 0, 'Black'),
+    ('h_mode2', 'Orbitron[wght].ttf', 28, UPPER + DIGITS + ' ', 0, 'Black', None, '', 0.9),
+    ('h_scale', 'Orbitron[wght].ttf', 38, DIGITS, 1, 'Black', {'0': 'O'}, '', 0.68),
+    ('h_tick', 'Orbitron[wght].ttf', 24, DIGITS + '/ ', 0, 'Black', {'0': 'O'}, '', 0.85),
+    ('h_kw', 'Orbitron[wght].ttf', 40, DIGITS + '.-', 0, 'Black', {'0': 'O'}, '', 0.85),
+    ('h_unit', 'Outfit[wght].ttf', 30, 'mphkm/h', 0, 'Bold'),
+    ('h_small', 'Outfit[wght].ttf', 28, UPPER + LOWER + DIGITS + "Ø /-.%°:+", 0, 'Regular'),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)

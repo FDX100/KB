@@ -3518,7 +3518,7 @@ void main() {
 }`;
 
 
-// ---- a baked line-art picture (no theme uses it now): a one-channel picture (an R8 asset
+// ---- the Live Hybrid theme's line art (layouts/livehyb.json, drawn by tools/gen_livehybrid.py): a one-channel picture (an R8 asset
 // of the layer's own size, baked from the photo's white lines) drawn in one colour. One texture read, nothing else.
 const GAUGEMASK = `// A gauge of any shape, baked as two one-channel pictures: u_cov (where the gauge is) and u_par (how far along it each pixel is,
 // 0..1): the pixels up to u_v are lit. One cluster-render "effect" layer (GLSL ES 1.00). Straight alpha out.
@@ -3553,7 +3553,7 @@ void main() {
     gl_FragColor = vec4(u_col.rgb, a * u_col.a);
 }`;
 
-// ---- a needle that sits at a point of a scale and points inwards: a short tapered line with a soft glow (a
+// ---- a needle that sits at a point of a scale and points inwards: a short tapered line with a soft glow (the Live Hybrid theme's
 // speed and rev needles). The app works out the point and the direction; the shader only draws them: no loop, no table.
 const PNEEDLE = `// A short needle at a point, in one cluster-render "effect" layer (GLSL ES 1.00). v_uv (0,0) is the top-left.
 #ifdef GL_FRAGMENT_PRECISION_HIGH
