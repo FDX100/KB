@@ -23,6 +23,7 @@ const TYPES = {
     lights: [],
     badge: ['text', 'font', 'tone'],
     badgemark: ['font'],
+    lamp: ['lamp', 'color', 'dim'],
     fill: [],
     box: [],
     grid: [],

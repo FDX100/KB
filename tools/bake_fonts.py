@@ -120,11 +120,12 @@ CLUSTER_FONTS = [
     ('z_unit', 'Orbitron[wght].ttf', 28, UPPER + DIGITS + '/ .', 0, 'Bold'),
     ('z_small', 'Barlow-Medium.ttf', 28, UPPER + LOWER + DIGITS + '/ .%°+-:', 0),
     # Arc Digital (after a digital sports-car cluster): 7-segment digits, wide Michroma numbers and small Outfit print
-    ('x_speed', 'DSEG7Classic-Bold.ttf', 86, DIGITS + '- ', 0),
-    ('x_odo', 'DSEG7Classic-Bold.ttf', 31, DIGITS + '.- ', 0),
-    ('x_num', 'Michroma-Regular.ttf', 36, DIGITS, 1),
-    ('x_cf', 'Michroma-Regular.ttf', 28, 'CHEF', 0),
-    ('x_lab', 'Outfit[wght].ttf', 22, UPPER + LOWER + DIGITS + " '/-.+%:", 0, 'Regular'),
+    ('x_speed', 'DSEG7Classic-Bold.ttf', 130, DIGITS + '- ', 0),
+    ('x_odo', 'DSEG7Classic-Bold.ttf', 47, DIGITS + '.- ', 0),
+    ('x_num', 'Michroma-Regular.ttf', 54, DIGITS, 1),
+    ('x_cf', 'Michroma-Regular.ttf', 42, 'CHEF', 0),
+    ('x_lab', 'Outfit[wght].ttf', 33, UPPER + LOWER + DIGITS + " '/-.+%:", 0, 'Regular'),
+    ('x_unit', 'Outfit[wght].ttf', 46, 'mphkm/h', 0, 'Regular'),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)

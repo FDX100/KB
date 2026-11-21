@@ -30,7 +30,7 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 <tr><td align="center" width="50%"><img src="docs/themes/neon.png" width="440" alt="Neon City"><br><b>Neon City</b><br>Cyberpunk skyline, neon frames, huge yellow speed.</td><td align="center" width="50%"><img src="docs/themes/glass.png" width="440" alt="Glass"><br><b>Glass</b><br>Two big glass-ring dials, the middle left clear for Waze.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/e46.png" width="440" alt="E46 M3"><br><b>E46 M3</b><br>White-faced analog cluster with chrome bezels and an orange LCD.</td><td align="center" width="50%"><img src="docs/themes/hybrid.png" width="440" alt="Hybrid"><br><b>Hybrid</b><br>One big speed with the battery charge line.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/luxe.png" width="440" alt="Luxe"><br><b>Luxe</b><br>Classic and luxurious e-drive: gold-bezel dials, a POWER dial with a CHARGE sector, an analog clock, and a charging view with kW, battery and time to full.</td></tr>
-<tr><td align="center" width="50%"><img src="docs/themes/arcd.png" width="440" alt="Arc Digital"><br><b>Arc Digital</b><br>After a digital sports-car cluster: a half-circle rev bar of slats (green, yellow, red), seven-segment speed, coolant and fuel bars.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/arcd.png" width="440" alt="Arc Digital"><br><b>Arc Digital</b><br>After a digital sports-car cluster: a half-circle rev bar of slats (green, yellow, red), seven-segment speed, coolant and fuel bars, and lamps that light with what the car does.</td></tr>
 </table>
 
 Pictures are bench screenshots of the cluster area, not photos from a car.
@@ -68,6 +68,7 @@ node deploy/mgu-install.js usb-repo <stick> github:robertnisipeanu/idrive-apps
 - **Map:** turn on "Show Waze map inside the theme" and use Waze on Cluster (robertnisipeanu). Themes with a map window open it; the others ignore it.
 - **Settings:** units, clock, fuel tank size, redline and shift point, shift lights, night colours, warnings.
 - **Charging view** (Luxe): when the car is parked and the battery charge is rising, the middle shows CHARGING with the estimated kW, the battery bar and the time to full. It is worked out from the battery charge (the charger unit isn't read), so it appears a few minutes after you plug in, and the kW needs the right **Battery size** on the Settings tab.
+- **Lamps (Arc Digital):** ABS and BRAKE light when the car brakes (0.65 g and 0.2 g), the oil lamp over the oil limit and the engine lamp over the coolant limit or at the redline (limits on the Alerts tab), the battery lamp under 15 % hybrid battery, MAINT REQ'D under 1.7 bar in a tyre, EPS while the car moves on the electric motor alone, and the key lamp while the car is ready.
 - **Badges and logos:** every theme shows your model badge, as text or as your own logo PNG (see Badges and logos below).
 - **Restart cluster** (Settings tab): drops the theme, resets the cluster's control unit the way BimmerCode does (UDS ECUReset to the KOMBI, address 0x60) and draws the theme again. Only while the car stands still; the cluster is dark for about 20 seconds.
 - **About:** credits and the **Language** switch (English / Kurdish Sorani).

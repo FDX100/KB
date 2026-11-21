@@ -331,7 +331,7 @@ const CLAIM_MS = 1000;
 
 const BOOST_SCALE = { factor: 0.01, offset: 0, invalid: 255 }; // see header comment
 // the widget types drawn as pixels (image layers, packed into sheets unless "own": true); the rest are shaders
-const IMAGE_TYPES = { badgemark: true, text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, swatchimg: true, nav: true, garland: true };
+const IMAGE_TYPES = { lamp: true, badgemark: true, text: true, scale: true, stripe: true, badge: true, gridlabels: true, icon: true, swatchimg: true, nav: true, garland: true };
 const STATUS_ASK_MS = 2000;      // after a rebuild: ask cluster-render for its own status text
 // an image layer is "stalled" until its first pixels reach cluster-render, which after a rebuild takes a second or two
 // through the upload budget: normal. Only one still stalled this long is logged as a problem (and its recovery)
@@ -361,7 +361,7 @@ const TARGET_SIZES = { hud: [800, 480], panel: [1920, 720] };
 const MODE_KEY = { comfort: 'inComfort', sport: 'inSport', eco: 'inEco' };
 // a hybrid's powertrain state, from the engine (rpm): a theme of its own for it, on top of the drive mode's ("same": the drive mode's)
 const POWER_KEY = { hybrid: 'inHybrid', electric: 'inElectric' };
-const BADGE_LOGO_SCALE = 0.75;   // a badge logo fills this much of its spot's height (and, alone, of its width), centred
+const BADGE_LOGO_SCALE = 0.55;   // a badge logo fills this much of its spot's height (and, alone, of its width), centred
 const POWER_HOLD_MS = 6000, POWER_DWELL_MS = 20000, ENGINE_ON_RPM = 150;
 const TYRE_CORNERS = ['FL', 'FR', 'RL', 'RR'];
 // the HUD's place (the page's Position tab): settings that move / scale the layers already there, no rebuild
@@ -1169,6 +1169,32 @@ class HudApp {
 
     /** fn(text) whenever the status line changes. */
     onStatus(fn) { this.statusListeners.push(fn); if (this.lastStatus) fn(this.lastStatus); }
+
+    /**
+     * A warning lamp of the Arc Digital theme ("lamp" widgets), lit by what the car does:
+     *   brake  braking (the car slows at 0.2 g or more)           abs     hard braking (0.65 g or more)
+     *   oil    the oil over its limit (Alerts tab)                 engine  the coolant over its limit, or the revs at the redline
+     *   battery  the hybrid battery under 15 %                     key     the car is ready (ignition on or moving)
+     *   maint  a tyre under 1.7 bar (when the car reports them)    eps     moving on the electric motor alone (engine off)
+     */
+    _lamp(id) {
+        const d = this.car.data(), num = (v) => (isNum(v) ? v : null);
+        const g = this._raw('gLong'), rpm = this._raw('rpm'), sp = this._raw('speed');
+        switch (id) {
+            case 'brake': return isNum(g) && g <= -0.2;
+            case 'abs': return isNum(g) && g <= -0.65;
+            case 'oil': { const lim = this.setting('warnOil'), v = this._raw('oil'); return lim > 0 && isNum(v) && v >= lim; }
+            case 'engine': {
+                const lim = this.setting('warnCoolant'), v = this._raw('coolant'), red = this.setting('redline');
+                return (lim > 0 && isNum(v) && v >= lim) || (isNum(rpm) && red > 0 && rpm >= red - 100);
+            }
+            case 'battery': { const v = this._raw('hvSoc'); return isNum(v) && v < 15; }
+            case 'key': return (this.vstate && isNum(this.vstate.state) ? this.vstate.state >= 7 : false) || (isNum(rpm) && rpm > 0) || (isNum(sp) && sp > 0) || !!d.demo;
+            case 'maint': return TYRE_CORNERS.some((k) => { const v = this._tyre('p', k); return isNum(v) && v > 0.3 && v < 1.7; });
+            case 'eps': return isNum(rpm) && rpm < 150 && isNum(sp) && sp > 3;
+            default: return false;
+        }
+    }
 
     /** Whether a theme is locked now (the first start after an installation, safe_start.js). */
     themeLocked(name) { return !!(this.safe && this.safe.isLocked(name)); }
@@ -2286,13 +2312,23 @@ class HudApp {
             }
             cl.forEach((c) => sheets.push(Object.assign(c, { kind: 'sheet', klass: g.klass, z: g.z, level: g.level })));
         });
-        // the biggest sheets first onto the connections with the most room; made in level order (a higher level is on top)
+        // Sheets that stack on each other (a member of one overlaps a member of another) go on ONE connection: they are made in level
+        // order, and within a class and z the newer layer is on top only for layers of one connection (the order two connections'
+        // messages arrive in is not ours to rely on). Each such group, biggest first, goes where there is the most room.
+        const hit2 = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        const parent = sheets.map((_, i) => i);
+        const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+        for (let i = 0; i < sheets.length; i++) for (let j = i + 1; j < sheets.length; j++) {
+            if (sheets[i].klass === sheets[j].klass && sheets[i].z === sheets[j].z && sheets[i].members.some((a) => sheets[j].members.some((b) => hit2(a, b)))) parent[find(i)] = find(j);
+        }
+        const groups2 = new Map();
+        sheets.forEach((sh, i) => { const r = find(i); if (!groups2.has(r)) groups2.set(r, []); groups2.get(r).push(sh); });
         const conns = new Map();
-        sheets.slice().sort((a, b) => b.w * b.h - a.w * a.h).forEach((sh) => {
+        Array.from(groups2.values()).sort((a, b) => b.reduce((n, x) => n + x.w * x.h, 0) - a.reduce((n, x) => n + x.w * x.h, 0)).forEach((grp) => {
             let ci = 0;
             for (let k = 1; k < MAX_CONN; k++) if (spare[k] > spare[ci]) ci = k;
-            spare[ci]--;
-            conns.set(sh, ci);
+            spare[ci] -= grp.length;
+            grp.forEach((sh) => conns.set(sh, ci));
         });
         sheets.forEach((sh, i) => { sh.seq = i; });
         sheets.sort((a, b) => a.level - b.level || a.seq - b.seq);       // (Node 8's sort isn't stable)
@@ -3399,6 +3435,14 @@ class HudApp {
                 glow: w.glow ? this.theme.glow : 0,
             });
             this._blitDiff(x, buf);
+        } else if (w.type === 'lamp') {
+            // a warning lamp (Arc Digital): its icon or text in the lit colour while _lamp(id) says so, else in the dim one
+            if (!force && now - x.lastPaint < 200) return;
+            const on = !!this._lamp(w.lamp);
+            if (!force && on === x.last) return;
+            x.last = on; x.lastPaint = now;
+            const col = color(this.theme, on ? w.color : w.dim);
+            this._blitDiff(x, w.icon ? paintIcon(w.icon, w.w, w.h, col) : textRaster.drawText(w.w, w.h, w.text, { font: w.font, color: col, align: w.align, spacing: w.spacing }));
         } else if (w.type === 'badgemark') {
             // the badge: "badgeStyle" Logo + text (the logo beside the name), Logo, or Text. The logo is the owner's PNG for the model
             // (logos.js); none there, or an empty name: the text alone.
