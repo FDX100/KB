@@ -115,7 +115,10 @@ def bake_panels(name):
     for pts in (PANEL_L, PANEL_R):
         dr.polygon([(x * 0.5 * k, y * 0.5 * k) for x, y in map(lambda q: L(*q), pts)], fill=255)
     im = im.resize((960, 330), Image.LANCZOS)
-    raw = bytes(im.getdata())
+    import numpy as np
+    yy, xx = np.mgrid[0:330, 0:960].astype(float)
+    shade = 1.0 - 0.38 * (yy / 330.0) - 0.12 * np.abs(xx - 480) / 480          # lighter at the top, like the photo's glossy panels
+    raw = bytes(np.round(np.asarray(im, dtype=float) * shade).astype(np.uint8).tobytes())
     with open(os.path.join(ROOT, 'apps', 'kurdbimmer_themes', 'hud', 'art', name + '.json'), 'w') as f:
         json.dump({'w': 960, 'h': 330, 'z': base64.b64encode(zlib.compress(raw, 9)).decode()}, f)
 
@@ -244,6 +247,9 @@ def bake_lines():
     # the left corner of the screen: the tail of the scale's chevron is part of the outline already
     arr = np.asarray(im.resize((1920, 660), __import__('PIL.Image', fromlist=['Image']).LANCZOS), dtype=np.uint8)
     put_art('livehyb', arr)
+    from PIL import Image, ImageFilter
+    halo = Image.fromarray(arr).resize((960, 330), Image.LANCZOS).filter(ImageFilter.GaussianBlur(3.2))
+    put_art('livehyb_halo', np.minimum(255, np.asarray(halo, dtype=float) * 2.2).astype(np.uint8))
 
 
 def bake_centre():
@@ -355,7 +361,7 @@ def gauges():
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'color': 'bg'}]
 HOLE = {'hole': [668, 128, 628, 436], 'holeWhen': 'mapUp', 'holeInset': 0, 'holeRadius': 56}
 # the grey panels (one layer: a polygon each) and, over them, the middle display and the red glows (a second layer)
-PANEL = [50, 53, 58, 255]
+PANEL = [74, 79, 88, 255]
 bake_centre()
 GLOWS = bake_glows()
 W.append({'id': 'middle', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 1, 'art': 'lh_mid', 'color': [70, 78, 90, 255], 'toggle': '!mapUp'})
@@ -364,6 +370,7 @@ W.append({'id': 'panels', 'type': 'artmask', 'class': 'content', 'z': 1, 'x': 0,
 for gid, (gx, gy, gw, gh) in GLOWS.items():
     W.append({'id': gid, 'type': 'artmask', 'class': 'content', 'z': 1, 'x': gx, 'y': gy, 'w': gw, 'h': gh, 'conn': 2, 'art': 'lh_' + gid, 'color': [238, 36, 40, 255]})
 # the white line art baked from the photo
+W.append({'id': 'art_halo', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb_halo', 'color': [170, 196, 255, 70]})
 W.append({'id': 'art', 'type': 'artmask', 'class': 'content', 'z': 2, 'x': 0, 'y': 0, 'w': 1920, 'h': 660, 'conn': 3, 'art': 'livehyb', 'color': WHITE})
 # ---- the scale numbers
 SPEED = [(0, (657, 782)), (30, (570, 784)), (60, (514, 726)), (90, (466, 654)), (120, (437, 582)), (150, (476, 514)), (180, (536, 464)),

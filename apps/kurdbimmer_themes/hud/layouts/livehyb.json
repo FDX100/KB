@@ -67,9 +67,9 @@
       "conn": 1,
       "art": "livehyb_panel",
       "color": [
-        50,
-        53,
-        58,
+        74,
+        79,
+        88,
         255
       ]
     },
@@ -107,6 +107,24 @@
         36,
         40,
         255
+      ]
+    },
+    {
+      "id": "art_halo",
+      "type": "artmask",
+      "class": "content",
+      "z": 2,
+      "x": 0,
+      "y": 0,
+      "w": 1920,
+      "h": 660,
+      "conn": 3,
+      "art": "livehyb_halo",
+      "color": [
+        170,
+        196,
+        255,
+        70
       ]
     },
     {
