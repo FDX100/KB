@@ -96,6 +96,12 @@ Transparent PNG, any size up to 4096 px, 8 or 16 bit, not interlaced; it is scal
 
 The app looks at the folder every few seconds, so no restart is needed. **Badge style** picks *Logo beside the text* (the default), *Logo only* or *Text only*; where a theme's spot is too narrow for both, the logo shows alone. `tools/logo_png.sh Mlogo.eps logos/m.png` turns an EPS (or PDF, SVG) you have into the PNG. On the bench, put the files in `bench/.data/kurdbimmer_themes/logos/`. The `logos/` folders are git-ignored, so the pictures are never committed. A theme made with `tools/gen_*.py` gets its badge from `tools/badge_spot.py` (one line in each generator): add a spot there for a new theme.
 
+## If something goes wrong
+
+- **Black cluster, or nothing shows, the first time:** open the app, Settings tab, **Restart cluster** (parked). Then pick a theme on the Themes tab. A fresh install now shows the theme in every drive mode; with "Change with the drive mode" on, a drive mode you left on *BMW's own* shows BMW's cluster.
+- **Slow or steppy needles:** Settings tab, **Cluster update rate**: Smooth is 20 a second, Balanced 12, Light 8. If a heavy theme lags, try a lighter one (Apex, Classic, Eco, Blue Dials, Night Drive, Hybrid).
+- **The cluster dips or restarts while driving:** note the theme, the app version and the Settings tab's last line (it now says when the app redrew many times, or lost its connection to cluster-render), and open an issue with the cluster-render log (`/var/opt/cluster-render/log/cluster-render.log`).
+
 ## Try it without a car
 
 ```sh

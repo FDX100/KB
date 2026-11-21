@@ -348,6 +348,8 @@ const CHARGE_MIN_RATE = 0.15;    // %/min of battery charge gained while parked 
 const CHARGE_WINDOW_MS = 180000, CHARGE_SPAN_MS = 60000;   // the charge readings kept, and the least span a rate is worked out over
 const RECUP_NM = 60;             // engine drag torque (Nm) that stands for full recharging (an estimate)
 const RECUP_G = 0.35;            // braking g that stands for full recharging when there is no torque reading
+const AUTO_REBUILD_GAP_MS = 30000;   // rebuilds nobody asked for (night colours, the Waze map coming and going, charging, hybrid state) come at most this often while the car moves: each one draws every layer again
+const BOOST_POLL_MS = 1000;      // the engine unit's boost read (only while the car's own sport display sends none): at most once a second
 const RESET_BACK_MS = 18000;     // restartCluster: how long the cluster unit takes to start again before we draw on it
 const RESTART_MS = 4000;         // restartCluster: how long our layers stay gone (the service lets go of a closed client's content after about 3 s)
 const TICK_RATES = { smooth: 50, balanced: 80, light: 125 };   // updateRate: 20, 12 or 8 a second
@@ -606,7 +608,7 @@ class HudApp {
         this.mapLayout = false;          // the active layout has a map window (a widget with holeWhen "mapUp")
         // the Waze map inside the theme (Cluster Themes, config.waze; waze.js): "mapUp" is on while it shows
         this.waze = this.config.waze ? new Waze(Object.assign({ dataDir: ctx.dataDir }, this.config.waze), this.log, () => this._guard('waze', () => {
-            if (this.mapLayout && this.setting('mapUp') !== this.mapShown) { if (this.mapLive) this._mapLive(); else this._rebuild(); } else this._status();
+            if (this.mapLayout && this.setting('mapUp') !== this.mapShown) { if (this.mapLive) this._mapLive(); else this._autoRebuild('Waze map ' + (this.setting('mapUp') ? 'up' : 'gone')); } else this._status();
         })) : null;
         this.mapShown = false;           // "mapUp" when the layout was built (or last opened / closed, mapLive)
         this.mapLive = false;            // the active layout opens and closes its map window without a rebuild
@@ -894,8 +896,16 @@ class HudApp {
 
     _wireClientEvents(c, ci) {
         const tag = ci ? ' [connection ' + (ci + 1) + ']' : '';
-        c.on('ready', () => { this.log.info('cluster-render ready' + tag + ' (backend=' + c.backend + ')'); if (ci === 0) this._rebuild(); else this._status(); });
-        c.on('disconnected', () => { this.log.warn('cluster-render disconnected' + tag + ', client will retry'); this._status(); });
+        c.on('ready', () => {
+            this.log.info('cluster-render ready' + tag + ' (backend=' + c.backend + ')');
+            // the first time, or when nothing is up: draw the layout. After a connection that dropped, the client sends every
+            // layer, uniform and picture again by itself (cluster_render_client.js), so drawing everything a second time
+            // would only double what goes through the upload budget
+            if (ci === 0 && !(this.everReady && this.widgets.size && !this.restarting)) this._rebuild(this.everReady ? 'cluster-render came back' : 'start');
+            else this._status();
+            if (ci === 0) this.everReady = true;
+        });
+        c.on('disconnected', () => { this.dropCount = (this.dropCount || 0) + 1; this.log.warn('cluster-render disconnected' + tag + ', client will retry (' + this.dropCount + ' so far)'); this._status(); });
         c.on('layer', (ref, state, reason) => {
             const key = ci + ':' + ref;
             const old = this.layerStates.get(key);
@@ -981,7 +991,7 @@ class HudApp {
         // Auto theme: check for sunrise / sunset once a minute; the status line too
         this.themeTimer = setInterval(() => this._guard('theme check', () => {
             if (this._themeName() !== this.themeName || this._nightDim() !== this.nightOn || this._hudHoliday() !== (this.hudHoliday || null) ||
-                this._holidayNow() !== (this.holidayAt || null)) this._rebuild();
+                this._holidayNow() !== (this.holidayAt || null)) this._autoRebuild('night colours / holiday');
             this._status();
             if (this.client.ready) this.client.status();      // the scene ids (scenesApart) can change: guard, update
         }), 60000);
@@ -1015,7 +1025,7 @@ class HudApp {
         } catch (e) { this.log.info('engine unit boost off: ' + (e && e.message || e)); return; }
         this.dmeTimer = setInterval(() => this._guard('engine unit boost', () => {
             const now = Date.now();
-            const wantBoost = hasBoost && this.needsBoost && now - this.boostFesAt >= FRESH_MS;
+            const wantBoost = hasBoost && this.needsBoost && now - this.boostFesAt >= FRESH_MS && now - (this.boostAsk || 0) >= BOOST_POLL_MS;
             const wantIntake = hasIntake && this.needsIntake && now - intakeAsk >= 2000;   // a temperature: every 2 s is plenty
             const wantHv = this.needsHv && now - hvAsk >= (hvMiss >= 3 ? HV_RETRY_MS : HV_EVERY_MS);
             const wantFuel = this.needsFuel && now - fuelAsk >= (fuelMiss >= 3 ? FUEL_RETRY_MS : FUEL_EVERY_MS);
@@ -1049,6 +1059,7 @@ class HudApp {
                     if (isNum(t)) { this.intakeDme = t; this.intakeDmeAt = Date.now(); }
                 }
                 if (!wantBoost) return;
+                this.boostAsk = now;
                 if (now - baroAt > 60000 && Array.isArray(dme.baro)) {
                     baroAt = now;
                     const b = await rd.value('baro', dme.baro);
@@ -1313,9 +1324,19 @@ class HudApp {
         return this.label + ' on' + mode + ': ' + name + ' layout, ' + theme + ' theme' + auto + layers + demo + drawn;
     }
 
+    /** "; 5 redraws in 10 min (last: Waze map up), 3 connection drops": only once it is more than a theme change or two, for a bug report. */
+    _churnText() {
+        const log = (this.rebuildLog || []).filter((r) => Date.now() - r.t < 600000);
+        const parts = [];
+        if (log.length >= 4) parts.push(log.length + ' redraws in 10 min (last: ' + log[log.length - 1].why + ')');
+        if ((this.dropCount || 0) >= 2) parts.push(this.dropCount + ' connection drops');
+        return parts.length ? '; ' + parts.join(', ') : '';
+    }
+
     _status() {
         // the Waze map's state rides along while that setting is on (and redraws the page's Map tab when it changes)
-        const s = this.statusText() + (this.waze && this.setting('mapInTheme') === true ? '; Waze: ' + this.waze.info().text : '');
+        const s = this.statusText() + (this.waze && this.setting('mapInTheme') === true ? '; Waze: ' + this.waze.info().text : '')
+            + this._churnText();
         const d = this.modeDiagLines().join('\n');
         if (s === this.lastStatus && d === this.lastDiag) return;
         this.lastStatus = s; this.lastDiag = d;
@@ -1988,9 +2009,26 @@ class HudApp {
 
     /* ---------------- layers ---------------- */
 
-    _rebuild() {
+    _rebuild(reason) {
+        this.rebuildLog = (this.rebuildLog || []).filter((r) => Date.now() - r.t < 600000);
+        this.rebuildLog.push({ t: Date.now(), why: reason || 'settings / theme change' });
         this._guard('rebuild', () => this._rebuildInner());
         this._status();
+    }
+
+    /**
+     * A rebuild nobody asked for (an automatic change: night colours, the Waze map coming and going, charging, the hybrid state):
+     * while the car moves, at most one every AUTO_REBUILD_GAP_MS, the rest wait (one is kept for when the gap is over). Every
+     * rebuild drops and sends every layer again through cluster-render's upload budget, so a flapping trigger while driving would
+     * keep the cluster busy; a parked car, and anything the driver does on the page, goes at once.
+     */
+    _autoRebuild(reason) {
+        const d = this.car.data(), now = Date.now(), moving = !d.demo && isNum(d.speed) && d.speed > 5;
+        const wait = (this.lastAutoRebuild || 0) + AUTO_REBUILD_GAP_MS - now;
+        if (!moving || wait <= 0) { clearTimeout(this.autoRebuildT); this.autoRebuildT = null; this.lastAutoRebuild = now; this._rebuild(reason); return; }
+        if (this.autoRebuildT) return;
+        this.log.info('redraw (' + reason + ') waits ' + Math.ceil(wait / 1000) + ' s while driving');
+        this.autoRebuildT = setTimeout(() => { this.autoRebuildT = null; this._guard('auto rebuild', () => this._autoRebuild(reason + ', deferred')); }, wait + 100);
     }
 
     _rebuildInner() {
@@ -3213,7 +3251,7 @@ class HudApp {
         const wanted = this.setting('byMode') === true && (this.setting('inHybrid') !== 'same' || this.setting('inElectric') !== 'same');
         const rpm = this._raw('rpm');
         if (!wanted || !isNum(rpm)) {
-            if (this.powertrain && !wanted) { this.powertrain = null; this.ptCand = null; if (this._layoutName() !== this.activeName) this._rebuild(); }
+            if (this.powertrain && !wanted) { this.powertrain = null; this.ptCand = null; if (this._layoutName() !== this.activeName) this._autoRebuild('hybrid / electric off'); }
             return;
         }
         const cand = rpm >= ENGINE_ON_RPM ? 'hybrid' : 'electric';
@@ -3221,7 +3259,7 @@ class HudApp {
         if (cand === this.powertrain || now - this.ptSince < POWER_HOLD_MS || now - (this.ptChangedAt || 0) < POWER_DWELL_MS) return;
         this.log.info('powertrain ' + cand + (this.powertrain ? ' (was ' + this.powertrain + ')' : ''));
         this.powertrain = cand; this.ptChangedAt = now;
-        if (this._layoutName() !== this.activeName) this._rebuild(); else this._status();
+        if (this._layoutName() !== this.activeName) this._autoRebuild('hybrid / electric'); else this._status();
     }
 
     /**
@@ -3252,7 +3290,7 @@ class HudApp {
         if (on !== (this.charging === true)) {
             this.charging = on;
             this.log.info('charging ' + (on ? 'detected (' + (kw === null ? '?' : kw.toFixed(1)) + ' kW estimated)' : 'stopped'));
-            if (this.chargeLayout) this._rebuild();
+            if (this.chargeLayout) this._autoRebuild('charging ' + (on ? 'started' : 'stopped'));
         }
     }
 
