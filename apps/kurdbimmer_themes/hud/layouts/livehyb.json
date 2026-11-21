@@ -957,7 +957,7 @@
       "w": 260,
       "h": 24,
       "text": "{{mode}}",
-      "font": "z_unit",
+      "font": "h_mode2",
       "color": [
         236,
         238,

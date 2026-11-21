@@ -207,25 +207,28 @@ def bake_lines():
         n = (n[0] / ln, n[1] / ln)
         return n if (MID[0] - p[0]) * n[0] + (MID[1] - p[1]) * n[1] > 0 else (-n[0], -n[1])
 
-    for outline, marks, minors in ((L_OUT, SPD_MARKS, 2), (R_OUT, REV_MARKS, 2)):
+    numbers_l = {i: p for i, (v, p) in enumerate(SPEED)}
+    numbers_r = {v: p for v, p in REV}
+    for outline, marks, focus, nums in ((L_OUT, SPD_MARKS, (880, 590), numbers_l), (R_OUT, REV_MARKS, (1290, 590), numbers_r)):
         path = smooth(relax(outline, 1), 10)
-        pl(path, 3.4)
-        pl(inner(path, 6.5, MID)[::2], 1.5)
+        pl(path, 4.4)
+        pl(inner(path, 8.5, MID)[::2], 1.7)
         pts = [m[1] for m in marks]
         for i, root in enumerate(pts):
-            n = normal_at(path, root)
-            wedge(root, n, 64 if i not in (0,) else 40, 4.6)
-            if i + 1 < len(pts):                                   # the small ticks between two marks
-                for j in range(1, minors + 1):
-                    t = j / (minors + 1)
-                    q = (root[0] + (pts[i + 1][0] - root[0]) * t, root[1] + (pts[i + 1][1] - root[1]) * t)
-                    q = min(path, key=lambda a: math.hypot(a[0] - q[0], a[1] - q[1]))
-                    n2 = normal_at(path, q)
-                    wedge(q, n2, 11, 2.2, 1.2)
+            fx, fy = focus[0] - root[0], focus[1] - root[1]
+            ln = math.hypot(fx, fy); d = (fx / ln, fy / ln)           # the leaders are rays from a point inside the dial
+            num = nums.get(marks[i][0] if focus[0] > 1000 else i)
+            reach = (math.hypot(num[0] - root[0], num[1] - root[1]) - 34) if num else 40
+            wedge(root, d, max(30, reach) * S, 5.0, 1.8)
+            if i + 1 < len(pts):                                   # the small ticks between two marks, on the outline
+                q = ((root[0] + pts[i + 1][0]) / 2, (root[1] + pts[i + 1][1]) / 2)
+                q = min(path, key=lambda a: math.hypot(a[0] - q[0], a[1] - q[1]))
+                fx, fy = focus[0] - q[0], focus[1] - q[1]; ln = math.hypot(fx, fy)
+                wedge(q, (fx / ln, fy / ln), 16, 3.0, 1.4)
     for pts in (LEFT_BOTTOM, RIGHT_BOTTOM):
         sm = smooth(pts, 8)
-        pl(sm, 3.2)
-        pl([(x, y + 6.5) for x, y in sm], 1.4)
+        pl(sm, 4.0)
+        pl([(x, y + 7.5) for x, y in sm], 1.6)
     # the power meter: the edge, the caps, the 0 line
     z = lambda off, pts: [(off[0] + x / 4.0, off[1] + y / 4.0) for x, y in pts]
     pl(smooth([(1428.8, 473.8)] + [(1465, 472.5)] + POWER_O, 8), 3.4)
@@ -382,7 +385,7 @@ W.append({'id': 'rev_needle', 'type': 'pneedle', 'class': 'content', 'z': 3, 'x'
           'marks': [[v, *L(*p)] for v, p in REV_MARKS], 'length': 78, 'width': 3.4, 'glow': 12, 'color': 'hot'})
 # ---- the mode, the speed
 W.append(text('evmode', (765, 526), 340, 'h_mode', '{{evmode}}', CYAN, 'center'))
-W.append(text('mode', (668, 553), 260, 'z_unit', '{{mode}}', WHITE, 'left'))
+W.append(text('mode', (668, 553), 260, 'h_mode2', '{{mode}}', WHITE, 'left'))
 W.append(icon('drive_icon', 'gauge', (636, 546), 46, WHITE))
 W.append(text('speed', (770, 632), 220, 'm_speed', '{{speed}}', WHITE, 'center'))
 W.append(text('speed_u', (818, 608), 100, 'h_small', '{{u:speedLc}}', WHITE, 'left'))
