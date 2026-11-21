@@ -310,6 +310,8 @@ const Screen = require('./screen');
 const badges = require('./badges');
 const { Logos } = require('./logos');
 const { SafeStart } = require('./safe_start');
+const data = require('./hud_data');
+const zlibInflate = require('zlib').inflateSync;
 const { fit: pngFit } = require('./png');
 const Runs = require('./runs');
 const tz = require('./tz');
@@ -1122,6 +1124,27 @@ class HudApp {
         this.atlases.set(key, a);
         this.log.info('glyph atlas "' + fontName + '"' + (ci ? ' on connection ' + (ci + 1) : '') + ': ' + chars.length + ' glyphs in ' +
             cellW + 'x' + cellH + ' cells, ' + w + 'x' + h + ' R8 asset, ' + mib(a.bytes) + ' of pixel memory');
+        return a;
+    }
+
+    /**
+     * A baked one-channel picture (hud/art/<name>.json { w, h, z }) as an R8 asset on a connection, kept like the glyph atlases
+     * (the client sends it again after a reconnect; the cache is cleared with them). Null when it is missing or refused.
+     */
+    _art(name, ci) {
+        const key = 'art:' + ci + ':' + name;
+        if (this.atlases.has(key)) return this.atlases.get(key);
+        const d = data.json('art/' + name + '.json');
+        if (!d || !d.z) { this.log.warn('art "' + name + '" is missing from hud/art'); return null; }
+        const px = zlibInflate(Buffer.from(d.z, 'base64'));
+        if (px.length !== d.w * d.h) { this.log.warn('art "' + name + '": size does not match'); return null; }
+        const c = this._clientAt(ci);
+        const ref = c.asset({ target: this.target, format: 'r8', w: d.w, h: d.h, sampling: 'bilinear' });
+        if (!ref) { this.log.warn('art "' + name + '": asset refused (' + d.w + 'x' + d.h + ')'); return null; }
+        c.pixels(ref, null, px);
+        const a = { ref, c, ci, bytes: d.w * d.h * 2 };
+        this.atlases.set(key, a);
+        this.log.info('art "' + name + '": ' + d.w + 'x' + d.h + ' R8 asset, ' + mib(a.bytes) + ' of pixel memory');
         return a;
     }
 
@@ -1971,6 +1994,13 @@ class HudApp {
             case 'fuelPct': { const v = this._raw('fuel'); return isNum(v) ? String(Math.round(v * 100)) : '--'; }
             case 'ambientN': { const v = this._raw('ambient'); return isNum(v) ? String(Math.round(us ? v * 9 / 5 + 32 : v)) : '--'; }
             case 'torque': { const v = this._raw('torque'); return fix(isNum(v) ? (us ? v * 0.737562 : v) : v, 0); }
+            case 'evmode': { const d = this.car.data(); return isNum(d.rpm) && d.rpm >= 150 ? 'HYBRID' : 'ELECTRIC'; }
+            case 'ready': return this._lamp('key') ? 'READY' : '';
+            case 'powerKw': { const e = this.config.engine || {}, d = this.car.data(); if (!isNum(d.torque) || !isNum(d.rpm)) return '0'; const kw = Math.max(0, d.torque * d.rpm / 9549); return kw >= 10 ? String(Math.round(kw)) : String(Math.round(kw * 10) / 10); }
+            case 'evRange': {          // the electric range: the battery charge of the range when full ("evRangeKm"), km or miles
+                const v = this._raw('hvSoc'), full = Number(this.setting('evRangeKm')) || 50;
+                return isNum(v) ? fix((v / 100) * full * (us ? 0.621371 : 1), 1) : '--';
+            }
             case 'chargeKw': return isNum(this.chargeKw) ? this.chargeKw.toFixed(1) : '--';
             case 'chargeEta': return this.chargeEta ? this.chargeEta : '--';
             case 'evstate': { const d = this.car.data(); return isNum(d.rpm) && d.rpm >= 150 ? 'HYBRID' : isNum(d.speed) && d.speed > 1 ? 'EV' : 'READY'; }
@@ -2807,6 +2837,18 @@ class HudApp {
             c.uniform(ref, 'u_s', [s.rect[0] - w.x, s.rect[1] - w.y, s.rect[2], s.rect[3]]);
             c.uniform(ref, 'u_s2', [s.cells, s.slant, s.gap, 0]);
             c.uniform(ref, 'u_s3', [s.orange, s.magenta, 0, 0]);
+        } else if (w.type === 'artmask') {
+            // the Live Hybrid theme's line art (shaders.js ARTMASK): "art" names hud/art/<art>.json, "color" its colour
+            const a = this._art(w.art, x.ci);
+            c.uniform(ref, 'u_col', rgba(color(t, w.color || 'fg')));
+            if (a) c.bind(ref, 'u_tex', a.ref);
+        } else if (w.type === 'pneedle') {
+            // a needle at the scale's point for a signal (shaders.js PNEEDLE): "marks" [[value, x, y], ...] in target px (a value runs
+            // through them as a polyline), "metric" / "us" mark sets when the units differ, "length", "width", "toward" [x, y] (it points there)
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_b', [w.length || 70, w.width || 3, w.glow || 12, 0]);
+            c.uniform(ref, 'u_col', rgb(color(t, w.color || 'hot')));
+            c.uniform(ref, 'u_a', [0, 0, 0, -1]);
         } else if (w.type === 'segarc') {
             // the Arc Digital theme's rev arc (shaders.js SEGARC): "center" [x, y] (target px), "radii" [slat in, slat out, tick in, tick out],
             // "tick" [half tick length, width, red block reach], "zones" [yellow, orange, red from, end] (thousands), "angles" degrees at 0..10 thousand
@@ -3800,6 +3842,21 @@ class HudApp {
             x.last = key;
             x.c.uniform(x.ref, 'u_s2', [s.cells, s.slant, s.gap, q]);
             x.c.uniform(x.ref, 'u_s3', [s.orange, s.magenta, pk > q ? pk : 0, 0]);
+        } else if (w.type === 'pneedle') {
+            const us = this.setting('units') === 'us';
+            const marks = (us && w.marksUs) || w.marks;
+            const raw = this._raw(w.signal);
+            const v = !isNum(raw) ? 0 : w.signal === 'rpm' ? raw / 1000 : (us && w.marksUs ? raw * 0.621371 : raw);
+            let i = 0;
+            while (i < marks.length - 2 && v > marks[i + 1][0]) i++;
+            const a = marks[i], b = marks[Math.min(marks.length - 1, i + 1)];
+            const t = b[0] === a[0] ? 0 : Math.min(1, Math.max(0, (v - a[0]) / (b[0] - a[0])));
+            const px = a[1] + (b[1] - a[1]) * t, py = a[2] + (b[2] - a[2]) * t;
+            const key = Math.round(px * 2) + '|' + Math.round(py * 2);
+            if (!force && key === x.last) return;
+            x.last = key;
+            const tx = (w.toward || [960, 400]), dx = tx[0] - px, dy = tx[1] - py, n = Math.hypot(dx, dy) || 1;
+            x.c.uniform(x.ref, 'u_a', [px - w.x, py - w.y, dx / n, dy / n]);
         } else if (w.type === 'segarc') {
             const rpm = this._raw('rpm'), q = Math.round((isNum(rpm) ? Math.max(0, rpm) / 1000 : 0) * 100) / 100;
             if (!force && q === x.last) return;

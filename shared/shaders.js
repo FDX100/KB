@@ -3518,4 +3518,48 @@ void main() {
 }`;
 
 
-module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+// ---- the Live Hybrid theme's line art (layouts/livehyb.json, tools/livehybrid/bake_mask.py): a one-channel picture (an R8 asset
+// of the layer's own size, baked from the photo's white lines) drawn in one colour. One texture read, nothing else.
+const ARTMASK = `// A baked one-channel picture drawn in one colour, in one cluster-render "effect" layer (GLSL ES 1.00).
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform sampler2D u_tex;
+uniform vec4 u_col;        // colour (rgb) and strength
+void main() {
+    float a = texture2D(u_tex, v_uv).r;
+    gl_FragColor = vec4(u_col.rgb, a * u_col.a);
+}`;
+
+// ---- a needle that sits at a point of a scale and points inwards: a short tapered line with a soft glow (the Live Hybrid theme's
+// speed and rev needles). The app works out the point and the direction; the shader only draws them: no loop, no table.
+const PNEEDLE = `// A short needle at a point, in one cluster-render "effect" layer (GLSL ES 1.00). v_uv (0,0) is the top-left.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v_uv;
+uniform vec2 u_size;
+uniform vec4 u_a;          // the needle's root (layer px) and its direction (a unit vector, inwards)
+uniform vec4 u_b;          // length, half width at the root, glow reach, -
+uniform vec3 u_col;
+void main() {
+    vec2 q = v_uv * u_size - u_a.xy;
+    float along = dot(q, u_a.zw);
+    float across = abs(dot(q, vec2(-u_a.w, u_a.z)));
+    float k = clamp(along / u_b.x, 0.0, 1.0);
+    float hw = mix(u_b.y, u_b.y * 0.35, k);
+    float inside = step(-0.5, along) * step(along, u_b.x);
+    float core = clamp(hw - across + 0.5, 0.0, 1.0) * inside;
+    float glow = exp(-across / u_b.z) * 0.42 * smoothstep(-8.0, 6.0, along) * (1.0 - smoothstep(u_b.x * 0.7, u_b.x + 14.0, along));
+    float a = max(core, glow);
+    vec3 c = mix(u_col, vec3(1.0, 0.86, 0.84), core * 0.35);
+    gl_FragColor = vec4(c, clamp(a, 0.0, 1.0));
+}`;
+
+
+module.exports = { shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };

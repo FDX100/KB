@@ -14,6 +14,7 @@ SPOTS = {
     'alpina':      (800, 330, 320, 80, 'center', 'badge', 'dim', '!mapUp'),
     'apex':        (810, 22, 300, 64, 'center', 'badge', 'dim', None),
     'arcd':        (810, 592, 300, 58, 'center', 'badge', 'dim', None),
+    'livehyb':     (965, 50, 190, 56, 'center', 'badge', 'dim', None),
     'bluedials':   (830, 592, 200, 58, 'center', 'badge', 'dim', None),
     'classic':     (810, 40, 300, 90, 'center', 'badge', 'dim', None),
     'classic_map': (810, 24, 300, 50, 'center', 'badge', 'dim', None),

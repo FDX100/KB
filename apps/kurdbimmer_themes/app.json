@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Eighteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -197,7 +197,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -287,7 +292,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -371,7 +381,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -455,7 +470,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -543,7 +563,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -631,7 +656,12 @@
         ],
         [
           "arcd",
+          "livehyb",
           "Arc Digital"
+        ],
+        [
+          "livehyb",
+          "Live Hybrid"
         ]
       ]
     },
@@ -958,6 +988,42 @@
         [
           "25",
           "25 kWh"
+        ]
+      ]
+    },
+    {
+      "key": "evRangeKm",
+      "label": "Electric range when full (for the range readout)",
+      "type": "choice",
+      "default": "50",
+      "options": [
+        [
+          "30",
+          "30 km"
+        ],
+        [
+          "40",
+          "40 km"
+        ],
+        [
+          "50",
+          "50 km"
+        ],
+        [
+          "60",
+          "60 km"
+        ],
+        [
+          "70",
+          "70 km"
+        ],
+        [
+          "80",
+          "80 km"
+        ],
+        [
+          "100",
+          "100 km"
         ]
       ]
     },
