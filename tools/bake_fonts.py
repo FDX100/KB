@@ -126,6 +126,14 @@ CLUSTER_FONTS = [
     ('x_cf', 'Michroma-Regular.ttf', 42, 'CHEF', 0),
     ('x_lab', 'Outfit[wght].ttf', 33, UPPER + LOWER + DIGITS + " '/-.+%:", 0, 'Regular'),
     ('x_unit', 'Outfit[wght].ttf', 46, 'mphkm/h', 0, 'Regular'),
+    # Starlight: a very tall thin speed, small Orbitron print, Barlow Condensed scale numbers in four sizes
+    ('sl_speed', 'Outfit[wght].ttf', 150, DIGITS, 0, 'Thin', None, '', 0.5),
+    ('sl_unit', 'Outfit[wght].ttf', 22, UPPER + '/ ', 0, 'Light'),
+    ('sl_top', 'Orbitron[wght].ttf', 22, UPPER + DIGITS + ':°. -', 0, 'Regular'),
+    ('sl_n1', 'BarlowCondensed-SemiBold.ttf', 62, DIGITS),
+    ('sl_n2', 'BarlowCondensed-SemiBold.ttf', 52, DIGITS),
+    ('sl_n3', 'BarlowCondensed-SemiBold.ttf', 43, DIGITS),
+    ('sl_n4', 'BarlowCondensed-SemiBold.ttf', 35, DIGITS),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)

@@ -2858,6 +2858,21 @@ class HudApp {
             c.uniform(ref, 'u_b', [w.length || 70, w.width || 3, w.glow || 12, 0]);
             c.uniform(ref, 'u_col', rgb(color(t, w.color || 'hot')));
             c.uniform(ref, 'u_a', [0, 0, 0, -1]);
+        } else if (w.type === 'stars') {
+            // the Starlight theme's sky (shaders.js STARS): "sky" [y where it thins, y where it is gone, y of the bright edge at the top] (px of the layer)
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_k', [w.sky[0], w.sky[1], w.sky[2], 0]);
+        } else if (w.type === 'ringfx') {
+            // the ring round the speed (shaders.js RINGFX): "ring" [centre x, centre y (target px), radius, strength of the dark disc]
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
+        } else if (w.type === 'beam') {
+            // a light curtain that follows the revs (shaders.js BEAM), drawn in the LEFT side's coordinates ("mirror": the right side): "rail" y, "edge"
+            // [top y, bottom y], "floor" [x0, y0, x1, y1], "tip" x, "marks" [[thousand rpm, edge x], ...], "hotFrom" (thousand rpm where it turns red)
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_a', [0, w.rail - w.y, w.edge[0] - w.y, w.edge[1] - w.y]);
+            c.uniform(ref, 'u_b', [w.floor[0], w.floor[1] - w.y, w.floor[2], w.floor[3] - w.y]);
+            c.uniform(ref, 'u_c', [0, w.mirror ? 1 : 0, w.tip, 0]);
         } else if (w.type === 'segarc') {
             // the Arc Digital theme's rev arc (shaders.js SEGARC): "center" [x, y] (target px), "radii" [slat in, slat out, tick in, tick out],
             // "tick" [half tick length, width, red block reach], "zones" [yellow, orange, red from, end] (thousands), "angles" degrees at 0..10 thousand
@@ -3872,6 +3887,20 @@ class HudApp {
             x.last = key;
             const tx = (w.toward || [960, 400]), dx = tx[0] - px, dy = tx[1] - py, n = Math.hypot(dx, dy) || 1;
             x.c.uniform(x.ref, 'u_a', [px - w.x, py - w.y, dx / n, dy / n]);
+        } else if (w.type === 'beam') {
+            const rpm = this._raw('rpm'), k = isNum(rpm) ? Math.min(8, Math.max(0, rpm / 1000)) : 0;
+            const m = w.marks;
+            let i = 0;
+            while (i < m.length - 2 && k > m[i + 1][0]) i++;
+            const a = m[i], b = m[Math.min(m.length - 1, i + 1)];
+            const f = b[0] === a[0] ? 0 : Math.min(1, Math.max(0, (k - a[0]) / (b[0] - a[0])));
+            const ex = Math.round((a[1] + (b[1] - a[1]) * f) * 2) / 2;
+            const h0 = w.hotFrom === undefined ? 7 : w.hotFrom, hot = Math.round(Math.min(1, Math.max(0, (k - h0) / (8 - h0))) * 20) / 20;
+            const key = ex + '|' + hot;
+            if (!force && key === x.last) return;
+            x.last = key;
+            x.c.uniform(x.ref, 'u_a', [ex, w.rail - w.y, w.edge[0] - w.y, w.edge[1] - w.y]);
+            x.c.uniform(x.ref, 'u_c', [hot, w.mirror ? 1 : 0, w.tip, 0]);
         } else if (w.type === 'segarc') {
             const rpm = this._raw('rpm'), q = Math.round((isNum(rpm) ? Math.max(0, rpm) / 1000 : 0) * 100) / 100;
             if (!force && q === x.last) return;

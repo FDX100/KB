@@ -210,6 +210,16 @@ const THEMES = {
         bg: [0, 0, 0, 255], panel: [24, 25, 24, 255], line: [52, 54, 52, 255], head: [92, 224, 44, 255],
         ink: [10, 10, 10, 255], accent: [92, 224, 44, 255], well: [0, 0, 0, 255],
     },
+    // Starlight (layout starlight.json): a night sky, a glowing ring, pale blue-white light curtains, red at the redline.
+    starlight: {
+        name: 'Starlight',
+        fg: [240, 241, 245, 255], dim: [120, 126, 140, 255], track: [44, 48, 60, 255], arc: [200, 224, 255, 255],
+        glow: 0, stripe: false,
+        bar: { low: [200, 224, 255], mid: [236, 214, 160], high: [236, 62, 52], midAt: 'shift' },
+        rev: { from: [200, 224, 255], to: [236, 62, 52] },
+        bg: [0, 0, 2, 255], panel: [12, 14, 22, 255], line: [150, 160, 190, 255], head: [200, 224, 255, 255],
+        ink: [10, 10, 14, 255], accent: [200, 224, 255, 255], well: [0, 0, 2, 255],
+    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });

@@ -31,6 +31,7 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 <tr><td align="center" width="50%"><img src="docs/themes/e46.png" width="440" alt="E46 M3"><br><b>E46 M3</b><br>White-faced analog cluster with chrome bezels and an orange LCD.</td><td align="center" width="50%"><img src="docs/themes/hybrid.png" width="440" alt="Hybrid"><br><b>Hybrid</b><br>One big speed with the battery charge line.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/luxe.png" width="440" alt="Luxe"><br><b>Luxe</b><br>Classic and luxurious e-drive: gold-bezel dials, a POWER dial with a CHARGE sector, an analog clock, and a charging view with kW, battery and time to full.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/arcd.png" width="440" alt="Arc Digital"><br><b>Arc Digital</b><br>After a digital sports-car cluster: a half-circle rev bar of slats (green, yellow, red), seven-segment speed, coolant and fuel bars, and lamps that light with what the car does.</td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/starlight.png" width="440" alt="Starlight"><br><b>Starlight</b><br>After a luxury electric car's concept cluster: a night sky of stars, a glowing ring with a tall thin speed, the revs as two fans of numbers, and curtains of light that slide out along them and turn red near the redline.</td><td align="center" width="50%"></td></tr>
 </table>
 
 Pictures are bench screenshots of the cluster area, not photos from a car.
