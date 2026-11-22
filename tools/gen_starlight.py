@@ -66,15 +66,15 @@ for v, p, font, col in NUM:
 W.append(text('speed', (960, RC[1] - 8), 240, 'sl_speed', '{{speed}}', WHITE, 'center'))
 W.append(text('speed_u', (960, C(0, 408)[1] + 2), 120, 'sl_unit', '{{u:speed}}', GREY, 'center'))
 # ---- the top row: the temperature and clock on the left, the power and its bar on the right
-TY = C(0, 80)[1]
-W.append({'id': 'temp_icon', 'type': 'icon', 'icon': 'therm', 'z': 5, 'x': 30, 'y': round(TY - 14), 'w': 28, 'h': 28, 'color': GREY})
-W.append(text('temp', (72, TY), 110, 'sl_top', '{{ambient}}{{u:temp}}', WHITE, 'left'))
-W.append(text('clock', (170, TY), 190, 'sl_top', '{{time}} {{ampm}}', WHITE, 'left'))
-W.append({'id': 'power_icon', 'type': 'icon', 'icon': 'bolt', 'z': 5, 'x': 1610, 'y': round(TY - 12), 'w': 24, 'h': 24, 'color': WHITE})
-W.append(text('power', (1640, TY), 130, 'sl_top', '{{powerKw}} KW', WHITE, 'left'))
-W.append({'id': 'power_track', 'type': 'fill', 'class': 'content', 'z': 2, 'x': 1750, 'y': round(TY - 1), 'w': 150, 'h': 2, 'color': [70, 76, 90, 255]})
-W.append({'id': 'power_bar', 'type': 'meter', 'class': 'content', 'z': 3, 'x': 1750, 'y': round(TY - 1.5), 'w': 150, 'h': 3, 'signal': 'powerPct', 'min': 0, 'max': 100,
-          'segments': 75, 'gap': 0, 'colors': [[240, 241, 245, 255]] * 3, 'at': [1.0, 1.0], 'conn': 2})
+TY = 114                                               # inside the visible part of the cluster: the hood curve is ~85 px down at x 200 and x 1700
+W.append({'id': 'temp_icon', 'type': 'icon', 'icon': 'therm', 'z': 5, 'x': 226, 'y': TY - 14, 'w': 28, 'h': 28, 'color': GREY})
+W.append(text('temp', (268, TY), 110, 'sl_top', '{{ambient}}{{u:temp}}', WHITE, 'left'))
+W.append(text('clock', (366, TY), 190, 'sl_top', '{{time}} {{ampm}}', WHITE, 'left'))
+W.append({'id': 'power_icon', 'type': 'icon', 'icon': 'bolt', 'z': 5, 'x': 1428, 'y': TY - 12, 'w': 24, 'h': 24, 'color': WHITE})
+W.append(text('power', (1460, TY), 110, 'sl_top', '{{powerKw}} KW', WHITE, 'left'))
+W.append({'id': 'power_track', 'type': 'fill', 'class': 'content', 'z': 2, 'x': 1566, 'y': TY - 1, 'w': 140, 'h': 2, 'color': [70, 76, 90, 255]})
+W.append({'id': 'power_bar', 'type': 'meter', 'class': 'content', 'z': 3, 'x': 1566, 'y': TY - 2, 'w': 140, 'h': 3, 'signal': 'powerPct', 'min': 0, 'max': 100,
+          'segments': 70, 'gap': 0, 'colors': [[240, 241, 245, 255]] * 3, 'at': [1.0, 1.0], 'conn': 2})
 # ---- the gear and the drive mode under the ring
 W.append(text('gear', (960, RC[1] + RR + 36), 80, 'sl_top', '{{gear}}', WHITE, 'center'))
 W.append(text('mode', (960, RC[1] + RR + 66), 240, 'sl_top', '{{mode}}', DIM, 'center'))
