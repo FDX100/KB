@@ -2875,7 +2875,7 @@ class HudApp {
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
         } else if (w.type === 'dewdrops') {
-            // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[radius, number, drop radius, wobble] x4] }
+            // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes inwards, wobble, 0], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_c', [w.drops.center[0] - w.x, w.drops.center[1] - w.y, 0, 0]);
             c.uniform(ref, 'u_ring', w.drops.rings.reduce((a, r) => a.concat(r), []), { type: 'vec4' });

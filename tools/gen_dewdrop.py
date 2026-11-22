@@ -44,7 +44,7 @@ W.append({'id': 'glass', 'type': 'slant', 'class': 'content', 'z': 1, 'x': 700, 
 # ---- the rings of drops, the thin arc round them (the power)
 CX, CY = X(770), Y(415)
 W.append({'id': 'drops', 'type': 'dewdrops', 'class': 'content', 'z': 2, 'x': round(CX - 260), 'y': round(CY - 260), 'w': 520, 'h': 520, 'conn': 2, 'rpmMax': 8000, 'fps': 8,
-          'drops': {'center': [CX, CY], 'rings': [[218, 26, 15, 8], [170, 21, 23, 8], [126, 15, 25, 5], [236, 44, 4, 3]]}})
+          'drops': {'center': [CX, CY], 'rings': [[236, 104, 26, 25], [4, 10.5, 6, 0], [0, 0, 0, 0], [0, 0, 0, 0]]}})
 R_ARC = 298
 AS = round(2 * (R_ARC + 14))
 W.append({'id': 'power_arc', 'type': 'arc', 'class': 'content', 'z': 2, 'x': round(CX - AS / 2), 'y': round(CY - AS / 2), 'w': AS, 'h': AS, 'conn': 3, 'signal': 'powerPct', 'min': 0, 'max': 100,

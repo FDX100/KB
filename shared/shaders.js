@@ -3766,8 +3766,8 @@ void main() {
 
 // ---- the Dewdrop theme (layouts/dewdrop.json): rings of water drops round the speed, and a slanted glass panel
 const DEWDROPS = `// Rings of water drops (GLSL ES 1.00): every drop a little lens with a bright rim, a specular point and a caustic on the far side, in rings round the
-// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds (wrapping at 2520). Every drop is born, grows, stays and fades on its own cycle (7 to 12.6 s) and comes back a little elsewhere. u_ring[4]: radius, number of drops, drop radius, wobble. The drops of the outer ring
-// light up clockwise with the revs (cool white, then red near the redline). Straight alpha out.
+// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds (wrapping at 2520). Seconds wrap at 2520. u_ring[0]: outer radius, inner radius, drops per ring, biggest drop radius. u_ring[1]: rings, seconds for a drop to travel, wobble. Rings of drops are born at the
+// outside, small, travel inwards away from the viewer growing then shrinking, and fade out at the speed; the outer ones light up clockwise with the revs.
 ` + FX_COMMON + `uniform vec4 u_c;
 uniform vec4 u_ring[4];
 vec4 drop(vec2 p, vec2 c, float r, float lit, float seed) {
@@ -3795,36 +3795,39 @@ void main() {
     float rad = length(rel);
     float ang = atan(rel.x, -rel.y);
     float tw = u_c.w;
+    float Rout = u_ring[0].x;
+    float Rin = u_ring[0].y;
+    float n = u_ring[0].z;
+    float rhoMax = u_ring[0].w;
+    float L = u_ring[1].x;
+    float T = u_ring[1].y;
+    float wob = u_ring[1].z;
+    float step_ = 6.2831853 / n;
     vec4 acc = vec4(0.0);
-    for (int k = 0; k < 4; k++) {
-        float R = u_ring[k].x;
-        float n = u_ring[k].y;
-        float rho = u_ring[k].z;
-        if (abs(rad - R) > rho * 1.7 + u_ring[k].w) continue;
-        float step_ = 6.2831853 / n;
-        float a0 = floor((ang + 3.14159265) / step_);
-        for (int j = -1; j <= 1; j++) {
-            float id = a0 + float(j);
+    for (int j = 0; j < 6; j++) {
+        if (float(j) >= L) break;
+        float cyc = tw / T + float(j) / L;
+        float e0 = fract(cyc);
+        float gen = floor(cyc);
+        float stag = mod(float(j), 2.0) * 0.5;
+        float a0 = floor((ang + 3.14159265) / step_ - stag);
+        if (abs(rad - mix(Rout, Rin, e0)) > rhoMax * 1.6 + wob) continue;
+        for (int m = -1; m <= 1; m++) {
+            float id = a0 + float(m);
             float idw = mod(id, n);
-            float sd0 = float(k) * 17.0 + idw * 1.37;
-            float per = 2520.0 / (200.0 + floor(h21(vec2(sd0, 11.0)) * 160.0));
-            float cyc = tw / per + h21(vec2(sd0, 12.0));
-            float ph = fract(cyc);
-            float sd = sd0 + floor(cyc) * 3.713;
-            float life = smoothstep(0.0, 0.2, ph) * (1.0 - smoothstep(0.72, 1.0, ph));
-            life *= step(0.10, h21(vec2(sd, 9.0)));
-            float grow = mix(0.25, 1.0, smoothstep(0.0, 0.2, ph)) * mix(1.0, 0.8, smoothstep(0.72, 1.0, ph));
-            float rr = rho * (0.70 + 0.38 * h21(vec2(sd, 4.0))) * grow;
-            float aa = (id + 0.5 + (h21(vec2(sd, 5.0)) - 0.5) * 0.45) * step_ - 3.14159265;
-            float rj = R + (h21(vec2(sd, 6.0)) - 0.5) * u_ring[k].w;
-            vec2 c = u_c.xy + rj * vec2(sin(aa), -cos(aa));
-            float lit = 0.0;
-            if (k == 0) {
-                float f = fract((aa + 2.356194) / 6.2831853);
-                lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75);
-            }
+            float sd = float(j) * 13.7 + idw * 1.37 + gen * 3.713;
+            float e = e0 + (h21(vec2(sd, 3.0)) - 0.5) * 0.025;
+            if (e < 0.0 || e > 1.0) continue;
+            float prof = pow(sin(3.14159265 * e), 0.7);
+            float life = smoothstep(0.0, 0.1, e) * (1.0 - smoothstep(0.80, 1.0, e)) * step(0.08, h21(vec2(sd, 9.0)));
+            float R = mix(Rout, Rin, e) + (h21(vec2(sd, 6.0)) - 0.5) * wob;
+            float rr = min(rhoMax * (0.62 + 0.46 * h21(vec2(sd, 4.0))) * (0.16 + 0.84 * prof), 0.36 * step_ * R);
+            float aa = (id + 0.5 + stag + (h21(vec2(sd, 5.0)) - 0.5) * 0.16) * step_ - 3.14159265;
+            vec2 c = u_c.xy + R * vec2(sin(aa), -cos(aa));
+            float f = fract((aa + 2.356194) / 6.2831853);
+            float lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75) * (1.0 - smoothstep(0.12, 0.34, e)) * life;
             float sh = 0.82 + 0.18 * sin(tw * (0.6 + 1.4 * h21(vec2(sd, 7.0))) + 6.2831 * h21(vec2(sd, 8.0)));
-            vec4 dd = drop(p, c, rr, lit * life, sd);
+            vec4 dd = drop(p, c, rr, lit, sd);
             dd.rgb *= sh;
             dd.a *= life;
             if (dd.a > acc.a) acc = dd;
