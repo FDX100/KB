@@ -3598,16 +3598,20 @@ float h21(vec2 p) {
 const STARS = `// A night sky (GLSL ES 1.00): stars of three sizes and a few colours on a jittered grid, thinning out downwards, soft out-of-focus discs, a faint
 // blue haze and a bright edge with its bloom along the top. u_k: y where the sky starts to thin, y where it is gone, y of the bright edge at the top.
 ` + FX_COMMON + `uniform vec4 u_k;
-vec4 star(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
+vec4 star(vec2 p, float cell, float seed, float thr, float rmin, float rmax, float gl) {
     vec2 g = floor(p / cell);
     vec2 f = p / cell - g;
     if (h21(g + seed) < thr) return vec4(0.0);
-    vec2 c = vec2(h21(g + seed + 3.1), h21(g + seed + 7.7)) * 0.7 + 0.15;
+    vec2 c = vec2(h21(g + seed + 3.1), h21(g + seed + 7.7)) * (0.7 - 0.4 * gl) + 0.15 + 0.13 * gl;
     float d = length((f - c) * cell);
     float b = h21(g + seed + 11.3);
     float rad = rmin + b * (rmax - rmin);
     float core = 1.0 - smoothstep(0.0, rad, d);
-    float I = (core * core * (3.0 - 2.0 * core) + exp(-d * d / (rad * rad * 7.0)) * 0.22 * step(2.0, rad)) * (0.35 + 0.65 * b);
+    vec2 q = (f - c) * cell;
+    float big = smoothstep(1.0, 2.6, rad);
+    float halo = (exp(-d * d / (rad * rad * 9.0)) * 0.55 + exp(-d / (rad * 2.6)) * 0.16) * gl;
+    float spike = (exp(-abs(q.x) / 0.7) * exp(-abs(q.y) / (rad * 6.0)) + exp(-abs(q.y) / 0.7) * exp(-abs(q.x) / (rad * 6.0))) * 0.5 * smoothstep(1.7, 3.0, rad) * gl;
+    float I = (core * core * (3.0 - 2.0 * core) * 1.15 + halo * (0.35 + 0.65 * big) + spike) * (0.35 + 0.65 * b);
     vec3 cc = mix(vec3(0.74, 0.85, 1.0), vec3(1.0, 0.93, 0.82), h21(g + seed + 19.0));
     return vec4(cc * I, I);
 }
@@ -3625,7 +3629,7 @@ float bokeh(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
 void main() {
     vec2 p = v_uv * u_size;
     float fall = 1.0 - smoothstep(u_k.x, u_k.y, p.y);
-    vec4 s = star(p, 15.0, 1.0, 0.80, 0.9, 1.6) + star(p, 40.0, 5.0, 0.74, 1.2, 2.4) + star(p, 110.0, 9.0, 0.84, 2.2, 3.6);
+    vec4 s = star(p, 15.0, 1.0, 0.80, 0.9, 1.6, 0.0) + star(p, 48.0, 5.0, 0.74, 1.2, 2.4, 1.0) + star(p, 120.0, 9.0, 0.82, 2.2, 3.6, 1.0);
     float sa = clamp(s.a, 0.0, 1.0) * fall;
     vec3 sc = s.rgb / max(s.a, 0.001);
     float bk = (bokeh(p, 130.0, 21.0, 0.80, 6.0, 13.0) + bokeh(p, 210.0, 33.0, 0.85, 10.0, 20.0)) * fall;
