@@ -3597,7 +3597,9 @@ float h21(vec2 p) {
 `;
 const STARS = `// A night sky (GLSL ES 1.00): stars of three sizes and a few colours on a jittered grid, thinning out downwards, soft out-of-focus discs, a faint
 // blue haze and a bright edge with its bloom along the top. u_k: y where the sky starts to thin, y where it is gone, y of the bright edge at the top.
+// u_t: seconds, so every star twinkles on its own slow rhythm, the discs breathe and the haze drifts.
 ` + FX_COMMON + `uniform vec4 u_k;
+uniform float u_t;
 vec4 star(vec2 p, float cell, float seed, float thr, float rmin, float rmax, float gl) {
     vec2 g = floor(p / cell);
     vec2 f = p / cell - g;
@@ -3611,7 +3613,9 @@ vec4 star(vec2 p, float cell, float seed, float thr, float rmin, float rmax, flo
     float big = smoothstep(1.0, 2.6, rad);
     float halo = (exp(-d * d / (rad * rad * 9.0)) * 0.55 + exp(-d / (rad * 2.6)) * 0.16) * gl;
     float spike = (exp(-abs(q.x) / 0.7) * exp(-abs(q.y) / (rad * 6.0)) + exp(-abs(q.y) / 0.7) * exp(-abs(q.x) / (rad * 6.0))) * 0.5 * smoothstep(1.7, 3.0, rad) * gl;
-    float I = (core * core * (3.0 - 2.0 * core) * 1.15 + halo * (0.35 + 0.65 * big) + spike) * (0.35 + 0.65 * b);
+    float tw = 0.62 + 0.38 * sin(u_t * (0.9 + 2.6 * h21(g + seed + 23.0)) + 6.2831 * h21(g + seed + 29.0));
+    float tw2 = 0.5 + 0.5 * sin(u_t * (0.5 + 1.3 * h21(g + seed + 31.0)) + 6.2831 * h21(g + seed + 37.0));
+    float I = (core * core * (3.0 - 2.0 * core) * 1.15 * tw + halo * (0.35 + 0.65 * big) * (0.4 + 0.9 * tw2) + spike * tw2 * tw2) * (0.35 + 0.65 * b);
     vec3 cc = mix(vec3(0.74, 0.85, 1.0), vec3(1.0, 0.93, 0.82), h21(g + seed + 19.0));
     return vec4(cc * I, I);
 }
@@ -3624,7 +3628,7 @@ float bokeh(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
     float rad = rmin + h21(g + seed + 5.0) * (rmax - rmin);
     float disc = 1.0 - smoothstep(rad - 1.5, rad, d);
     float rim = exp(-pow((d - rad) / 1.2, 2.0)) * 0.6;
-    return (disc * 0.5 + rim) * (0.05 + 0.07 * h21(g + seed + 9.0));
+    return (disc * 0.5 + rim) * (0.05 + 0.07 * h21(g + seed + 9.0)) * (0.6 + 0.4 * sin(u_t * (0.25 + 0.5 * h21(g + seed + 41.0)) + 6.2831 * h21(g + seed + 43.0)));
 }
 void main() {
     vec2 p = v_uv * u_size;
@@ -3634,9 +3638,9 @@ void main() {
     vec3 sc = s.rgb / max(s.a, 0.001);
     float bk = (bokeh(p, 130.0, 21.0, 0.80, 6.0, 13.0) + bokeh(p, 210.0, 33.0, 0.85, 10.0, 20.0)) * fall;
     float dx = p.x - u_size.x * 0.5;
-    float hz = (0.035 * (0.55 + 0.45 * sin(p.x * 0.0037 + 1.3) * sin(p.y * 0.0061 + 0.7)) + 0.09 * exp(-pow(dx / 620.0, 2.0)) * exp(-p.y / 150.0)) * (1.0 - 0.6 * smoothstep(u_k.x, u_k.y, p.y));
+    float hz = (0.035 * (0.55 + 0.45 * sin(p.x * 0.0037 + 1.3 + u_t * 0.05) * sin(p.y * 0.0061 + 0.7 - u_t * 0.04)) + 0.09 * exp(-pow(dx / 620.0, 2.0)) * exp(-p.y / 150.0)) * (1.0 - 0.6 * smoothstep(u_k.x, u_k.y, p.y));
     float e = exp(-pow((p.y - u_k.z) / 2.2, 2.0)) * (0.30 + 0.70 * exp(-pow(dx / 340.0, 2.0)));
-    float bl = exp(-pow((p.y - u_k.z) / 16.0, 2.0)) * 0.26 * exp(-pow(dx / 520.0, 2.0));
+    float bl = exp(-pow((p.y - u_k.z) / 16.0, 2.0)) * (0.20 + 0.06 * sin(u_t * 0.7)) * exp(-pow(dx / 520.0, 2.0));
     vec3 pm = sc * sa + vec3(0.66, 0.78, 1.0) * bk + vec3(0.30, 0.44, 0.95) * hz + vec3(0.86, 0.91, 1.0) * (e + bl);
     float al = clamp(sa + bk + hz + e + bl, 0.0, 1.0);
     gl_FragColor = vec4(pm / max(sa + bk + hz + e + bl, 0.001), al);

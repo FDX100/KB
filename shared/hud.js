@@ -99,7 +99,7 @@
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
- *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge]
+ *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
  *   ringfx    effect layer; the glowing ring round the speed (RINGFX): "ring" [centre x, centre y, radius, dark disc strength]
  *   rails     effect layer; two thin rails into the ring on both sides, drawn by the shader (RAILS): "segs" four [x0, y0, x1, y1] of the left side, "red", "width"
  *   beam      effect layer; a light curtain whose edge slides along "marks" [[thousand rpm, x], ...] with the revs (BEAM): "rail", "edge", "floor", "tip", "mirror", "red" [x of the 7, x of the 8] (violet, then red, over that stretch)
@@ -2866,6 +2866,7 @@ class HudApp {
             // the Starlight theme's sky (shaders.js STARS): "sky" [y where it thins, y where it is gone, y of the bright edge at the top] (px of the layer)
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_k', [w.sky[0], w.sky[1], w.sky[2], 0]);
+            c.uniform(ref, 'u_t', [0]);
         } else if (w.type === 'ringfx') {
             // the ring round the speed (shaders.js RINGFX): "ring" [centre x, centre y (target px), radius, strength of the dark disc]
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -3897,6 +3898,12 @@ class HudApp {
             x.last = key;
             const tx = (w.toward || [960, 400]), dx = tx[0] - px, dy = tx[1] - py, n = Math.hypot(dx, dy) || 1;
             x.c.uniform(x.ref, 'u_a', [px - w.x, py - w.y, dx / n, dy / n]);
+        } else if (w.type === 'stars') {
+            // the twinkle: the time in seconds, in steps of 1 / "fps" (6) of a second, repeating every 20 minutes
+            const q = Math.floor(now / 1000 * (w.fps || 6)) / (w.fps || 6) % 1200;
+            if (!force && q === x.last) return;
+            x.last = q;
+            x.c.uniform(x.ref, 'u_t', [q]);
         } else if (w.type === 'beam') {
             const rpm = this._raw('rpm'), k = isNum(rpm) ? Math.min(8, Math.max(0, rpm / 1000)) : 0;
             const m = w.marks;
