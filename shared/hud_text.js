@@ -134,4 +134,28 @@ function tint(m, boxW, boxH, opts) {
 /** Drops every loaded font atlas (they load again when a widget next draws with them). */
 function clearCache() { loadedFonts.clear(); warnedMissing.clear(); }
 
-module.exports = { drawText, mask, tint, measure, loadFont, clearCache };
+/** An RGBA picture (straight alpha, w x h) turned clockwise by `deg` about its centre, bilinear, same size (the corners that leave the box are lost). */
+function rotate(buf, w, h, deg) {
+    const a = deg * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), cx = w / 2, cy = h / 2;
+    const out = Buffer.alloc(w * h * 4, 0);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+            const sx = cs * dx + sn * dy + cx - 0.5, sy = -sn * dx + cs * dy + cy - 0.5;       // the source point of this pixel
+            const x0 = Math.floor(sx), y0 = Math.floor(sy), fx = sx - x0, fy = sy - y0;
+            let r = 0, g = 0, b = 0, al = 0;
+            for (let j = 0; j < 4; j++) {
+                const xx = x0 + (j & 1), yy = y0 + (j >> 1);
+                if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                const wt = ((j & 1) ? fx : 1 - fx) * ((j >> 1) ? fy : 1 - fy), o = (yy * w + xx) * 4, wa = wt * buf[o + 3];
+                r += buf[o] * wa; g += buf[o + 1] * wa; b += buf[o + 2] * wa; al += wa;
+            }
+            if (al <= 0) continue;
+            const o = (y * w + x) * 4;
+            out[o] = Math.round(r / al); out[o + 1] = Math.round(g / al); out[o + 2] = Math.round(b / al); out[o + 3] = Math.round(al);
+        }
+    }
+    return out;
+}
+
+module.exports = { rotate, drawText, mask, tint, measure, loadFont, clearCache };

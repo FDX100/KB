@@ -142,6 +142,13 @@ CLUSTER_FONTS = [
     ('bd_sub', 'Outfit[wght].ttf', 23, ''.join(chr(i) for i in range(32, 127)) + '°', 0, 'Regular'),
     ('bd_lab', 'Outfit[wght].ttf', 20, UPPER + DIGITS + ' .:/%°-', 0, 'Regular'),
     ('bd_gear', 'Outfit[wght].ttf', 38, 'PRND0123456789', 0, 'Regular'),
+    # Cream (after the retro cream-faced cluster): Liberation Serif (OFL 1.1)
+    ('cr_big', 'LiberationSerif-Bold.ttf', 168, DIGITS, 0),
+    ('cr_mid', 'LiberationSerif-Regular.ttf', 38, UPPER + DIGITS + ' ', 0),
+    ('cr_num', 'LiberationSerif-Regular.ttf', 40, DIGITS, 0),
+    ('cr_gear', 'LiberationSerif-Regular.ttf', 38, 'PRND', 0),
+    ('cr_lab', 'LiberationSerif-Bold.ttf', 17, UPPER + DIGITS + ' ', 0),
+    ('cr_lcd', 'DSEG7Classic-Bold.ttf', 40, DIGITS + '.-', 0),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)

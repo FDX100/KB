@@ -3857,4 +3857,66 @@ void main() {
     gl_FragColor = vec4(col, tot);
 }`;
 
-module.exports = { dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+// ---- the Cream theme (layouts/cream.json): cream-faced dials like an old instrument cluster
+const CREAMDIAL = `// A cream instrument dial (GLSL ES 1.00): an aged cream face with a dark bezel, a ticked band along an arc, a black fill that follows the value and a red
+// zone. u_c: centre x, y (layer px), face radius, how aged the face is (0..1). u_s: start (degrees clockwise from up), sweep, value 0..1, where the red zone
+// starts (0..1, 2 = none). u_b: band in, band out, fill out (fractions of the radius), minor tick intervals. u_m: minors per major tick. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_c;
+uniform vec4 u_s;
+uniform vec4 u_b;
+uniform vec4 u_m;
+float ln(float d, float w) { return clamp(w * 0.5 + 0.5 - abs(d), 0.0, 1.0); }
+void main() {
+    vec2 p = v_uv * u_size - u_c.xy;
+    float st = u_s.x;
+    float sw = u_s.y;
+    if (sw < 0.0) { p.x = -p.x; st = -st; sw = -sw; }
+    float R = u_c.z;
+    float r = length(p);
+    float u = r / R;
+    float bz = 0.075;
+    if (u > 1.0 + bz + 0.01) { gl_FragColor = vec4(0.0); return; }
+    float pxu = 1.0 / R;
+    float aa = 1.0 / R;
+    float ang = degrees(atan(p.x, -p.y));
+    float rel = mod(ang - st + 720.0, 360.0);
+    float f = rel / sw;
+    float inSc = step(f, 1.0) * step(0.0, f);
+    vec3 cream = mix(vec3(0.86, 0.87, 0.68), vec3(0.64, 0.63, 0.42), smoothstep(0.30, 1.0, u));
+    cream -= vec3(0.05, 0.05, 0.07) * u_c.w * (0.35 + 0.65 * h21(floor(p * 0.5)));
+    cream += vec3(0.07) * exp(-dot(p / R - vec2(-0.30, -0.45), p / R - vec2(-0.30, -0.45)) / 0.22);
+    float faceA = 1.0 - smoothstep(1.0 - aa, 1.0, u);
+    vec3 col = cream;
+    float a = faceA;
+    float rim = ln((u - 0.955) / aa * 0.5, 1.5) * 0.22;
+    col = mix(col, vec3(0.28, 0.27, 0.18), rim * faceA);
+    float bez = smoothstep(1.0 - aa, 1.0, u) * (1.0 - smoothstep(1.0 + bz - aa, 1.0 + bz, u));
+    float lit = 0.5 + 0.5 * dot(normalize(p + vec2(0.001)), normalize(vec2(-0.6, -0.8)));
+    vec3 bc = mix(vec3(0.045, 0.047, 0.04), vec3(0.34, 0.33, 0.22), pow(lit, 3.0) * smoothstep(1.0, 1.0 + bz * 0.6, u) * (1.0 - smoothstep(1.0 + bz * 0.6, 1.0 + bz, u)));
+    col = mix(col, bc, bez);
+    a = max(faceA, bez);
+    // the band
+    float bi = u_b.x, bo = u_b.y;
+    float inBand = step(bi, u) * step(u, bo) * inSc;
+    float red = step(u_s.w, f) * step(u_s.w, 1.5);
+    vec3 ink = vec3(0.15, 0.14, 0.12);
+    float redA = red * inBand * 0.92;
+    col = mix(col, vec3(0.79, 0.12, 0.14), redA);
+    float fillA = step(bi, u) * step(u, u_b.z) * step(f, u_s.z) * inSc;
+    fillA *= smoothstep(0.0, aa * 2.0, u - bi + aa) * smoothstep(0.0, aa * 2.0, u_b.z - u + aa);
+    col = mix(col, vec3(0.1), fillA * 0.95);
+    float step_deg = sw / u_b.w;
+    float dmin = abs(fract(rel / step_deg + 0.5) - 0.5) * step_deg * 0.0174533 * r;
+    float k = floor(rel / step_deg + 0.5);
+    float isMajor = step(abs(mod(k, u_m.x)), 0.001);
+    float tIn = bi - 0.012, tOut = bo + 0.012 + 0.04 * isMajor;
+    float tick = ln(dmin, mix(1.0, 1.6, isMajor)) * step(tIn, u) * step(u, tOut) * step(-0.0001, f) * step(f, 1.0001);
+    float ringL = max(max(ln((u - bi) * R, 1.3), ln((u - bo) * R, 1.3)), ln((u - (bi + bo) * 0.5) * R, 0.7) * 0.7);
+    ringL *= inSc * step(-0.001, f);
+    float lines = max(tick, ringL);
+    vec3 lc = mix(ink, vec3(0.30, 0.04, 0.05), red * inBand);
+    col = mix(col, lc, clamp(lines, 0.0, 1.0) * 0.92 * (1.0 - fillA * 0.9));
+    gl_FragColor = vec4(col, a);
+}`;
+
+module.exports = { creamdial: CREAMDIAL, dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };

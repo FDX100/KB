@@ -99,6 +99,7 @@
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
+ *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red }, "signal", "min", "max" ({ metric, us })
  *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
@@ -267,7 +268,7 @@
  *
  * Text tokens: {{speed}} {{u:speed}} {{oil}} {{coolant}} {{boost}} {{u:boost}} {{rpm}}
  * {{gear}} (P / R / N, D3 / S3 / M3 by the shifter programme, or just 3 when the selector position is unknown), {{gearnum}} (3, or P / R / N)
- * {{spd:<i>}} (speed scale label i of SPEED_SCALE: 0..200 mph, 0..320 km/h) {{range}} {{u:distLc}} (mi, km) {{u:dist}} (MI, KM) {{ambient}} (outside, signed: +75) {{u:speedLc}} (mph, km/h) {{speed2}} {{u:speed2Lc}} {{u:speed2}} (the speed in the other unit) {{rpmK}} (the revs in whole thousands) {{mediaTitle}} {{mediaArtist}} {{mediaElapsed}} {{mediaLeft}} (now playing, HmiMediaState; empty without) {{ampmLc}} (am, pm) {{torque}} {{u:torque}} (lb-ft, Nm) {{torquePct}} {{powerPct}} (% of config.engine's peak) {{boostHi}} {{boostMid}}
+ * {{spd:<i>}} (speed scale label i of SPEED_SCALE: 0..200 mph, 0..320 km/h) {{range}} {{u:distLc}} (mi, km) {{u:dist}} (MI, KM) {{ambient}} (outside, signed: +75) {{u:speedLc}} (mph, km/h) {{speed2}} {{u:speed2Lc}} {{u:speed2}} (the speed in the other unit) {{rpmK}} (the revs in whole thousands) {{rpmH}} (in hundreds) {{mediaTitle}} {{mediaArtist}} {{mediaElapsed}} {{mediaLeft}} (now playing, HmiMediaState; empty without) {{ampmLc}} (am, pm) {{torque}} {{u:torque}} (lb-ft, Nm) {{torquePct}} {{powerPct}} (% of config.engine's peak) {{boostHi}} {{boostMid}}
  * (gauge labels for 1.4 / 0.7 bar in the display unit) {{stage}} (P R N, D / S / M by the shifter programme) {{gearInD}} (gear number while in D) {{mode}} (COMFORT, SPORT, SPORT PLUS, SPORT INDIVIDUAL, ECO PRO, ...)
  * {{temp:<deg C>}} (that temperature in the display unit, °F rounded to 10, for gauge labels) {{setup:engine|chassis|steering|gearbox}} (what that part is set to in the drive mode now)
  * {{time}} {{ampm}} {{u:temp}} (°F / °C) {{gLat}} {{gLong}} (g, 2 decimals) {{gSide}} ("0.42 L", "0.42 R")
@@ -1204,6 +1205,7 @@ class HudApp {
      *   brake  braking (the car slows at 0.2 g or more)           abs     hard braking (0.65 g or more)
      *   oil    the oil over its limit (Alerts tab)                 engine  the coolant over its limit, or the revs at the redline
      *   battery  the hybrid battery under 15 %                     key     the car is ready (ignition on or moving)
+     *   gP gR gN gD  the gear selector is in P / R / N / D (the Cream theme's gear boxes)
      *   maint  a tyre under 1.7 bar (when the car reports them)    eps     moving on the electric motor alone (engine off)
      */
     _lamp(id) {
@@ -1220,6 +1222,7 @@ class HudApp {
             case 'battery': { const v = this._raw('hvSoc'); return isNum(v) && v < 15; }
             case 'key': return (this.vstate && isNum(this.vstate.state) ? this.vstate.state >= 7 : false) || (isNum(rpm) && rpm > 0) || (isNum(sp) && sp > 0) || !!d.demo;
             case 'maint': return TYRE_CORNERS.some((k) => { const v = this._tyre('p', k); return isNum(v) && v > 0.3 && v < 1.7; });
+            case 'gP': case 'gR': case 'gN': case 'gD': return d.stage === id.charAt(1) || (id === 'gD' && d.stage === 'S');
             case 'eps': return isNum(rpm) && rpm < 150 && isNum(sp) && sp > 3;
             default: return false;
         }
@@ -1978,6 +1981,7 @@ class HudApp {
                 return this.theme.hudGreeting && isNum(sp) && sp < 3 ? this.theme.hudGreeting : '';
             }
             case 'u:temp': return us ? '°F' : '°C';
+            case 'u:speedKph': return us ? 'MPH' : 'KPH';
             case 'u:speedLc': return us ? 'mph' : 'km/h';
             case 'u:distLc': return us ? 'mi' : 'km';
             case 'u:dist': return us ? 'MI' : 'KM';
@@ -2028,6 +2032,7 @@ class HudApp {
             case 'gBest': return this.gBest.total > 0 ? this.gBest.total.toFixed(2) : '--';
             case 'gMax': return this._gRange(null).toFixed(1);
             case 'rpm': case 'rpm10': return isNum(this.rpmShown) ? String(this.rpmShown) : (tok === 'rpm' ? '--' : '----');
+            case 'rpmH': return isNum(this.rpmShown) ? String(Math.min(99, Math.round(this.rpmShown / 100))) : '--';       // the revs in hundreds (the Cream theme's dial)
             case 'rpmK': return isNum(this.rpmShown) ? String(Math.min(9, Math.round(this.rpmShown / 1000))) : '-';       // the revs in thousands, whole (the Dewdrop theme)
             case 'revK': return isNum(this.rpmShown) ? (this.rpmShown / 1000).toFixed(1) : '--';       // the revs in thousands, one decimal (the Live Cockpit's 0.0)
             case 'shiftAt': return String(this._shift().rpm);
@@ -2874,6 +2879,15 @@ class HudApp {
             // the ring round the speed (shaders.js RINGFX): "ring" [centre x, centre y (target px), radius, strength of the dark disc]
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
+        } else if (w.type === 'creamdial') {
+            // the Cream theme's cream-faced dial (shaders.js CREAMDIAL): "dial" { center [x, y] (target px), radius, start / sweep (degrees, start clockwise from up),
+            // band [in, out, fill out] (fractions of the radius), minors (tick intervals), majorEvery, red [from fraction, 1 = none] }, "signal" with "min" / "max" (or { metric, us })
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            const d = w.dial;
+            c.uniform(ref, 'u_c', [d.center[0] - w.x, d.center[1] - w.y, d.radius, d.age === undefined ? 1 : d.age]);
+            c.uniform(ref, 'u_s', [d.start, d.sweep, 0, d.red === undefined ? 2 : d.red]);
+            c.uniform(ref, 'u_b', [d.band[0], d.band[1], d.band[2], d.minors]);
+            c.uniform(ref, 'u_m', [d.majorEvery || 2, d.hot === undefined ? 0 : d.hot, 0, 0]);
         } else if (w.type === 'dewdrops') {
             // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes to travel, wobble, 1: outwards from the speed (0: inwards)], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -3562,12 +3576,13 @@ class HudApp {
                 offsetY = textRaster.loadFont(w.font).metrics.baseline - textRaster.loadFont(f).metrics.baseline;
                 font = f;
             }
+            if (w.vcenter) offsetY += Math.round((w.h - textRaster.loadFont(font).metrics.cellHeight) / 2);      // "vcenter": the text in the middle of a taller box (a number to turn about its centre)
             const buf = textRaster.drawText(w.w, w.h, s, {
                 font, offsetY, color: color(this.theme, role), align: w.align, spacing: w.spacing,
                 color2: w.color2 && role !== 'hot' ? color(this.theme, w.color2) : null,
                 glow: w.glow ? this.theme.glow : 0,
             });
-            this._blitDiff(x, buf);
+            this._blitDiff(x, w.angle ? textRaster.rotate(buf, w.w, w.h, w.angle) : buf);      // "angle": turned clockwise about the box's centre (a number on a dial)
         } else if (w.type === 'lamp') {
             // a warning lamp (Arc Digital): its icon or text in the lit colour while _lamp(id) says so, else in the dim one
             if (!force && now - x.lastPaint < 200) return;
@@ -3912,6 +3927,16 @@ class HudApp {
             x.last = key;
             const tx = (w.toward || [960, 400]), dx = tx[0] - px, dy = tx[1] - py, n = Math.hypot(dx, dy) || 1;
             x.c.uniform(x.ref, 'u_a', [px - w.x, py - w.y, dx / n, dy / n]);
+        } else if (w.type === 'creamdial') {
+            const us = this.setting('units') === 'us', pick = (v) => (v && typeof v === 'object' ? (us ? v.us : v.metric) : v);
+            let raw = this._raw(w.signal);
+            if (us && w.signal === 'speed' && isNum(raw)) raw = raw * 0.621371;
+            const mn = pick(w.min), mx = pick(w.max);
+            const q = Math.round((isNum(raw) && mx !== mn ? Math.min(1, Math.max(0, (raw - mn) / (mx - mn))) : 0) * 400) / 400;
+            if (!force && q === x.last) return;
+            x.last = q;
+            const d = w.dial;
+            x.c.uniform(x.ref, 'u_s', [d.start, d.sweep, q, d.red === undefined ? 2 : d.red]);
         } else if (w.type === 'dewdrops') {
             const rpm = this._raw('rpm'), v = Math.round(Math.min(1, Math.max(0, isNum(rpm) ? rpm / (w.rpmMax || 8000) : 0)) * 100) / 100;
             const q = Math.floor(now / 1000 * (w.fps || 8)) / (w.fps || 8) % 2520;

@@ -230,6 +230,16 @@ const THEMES = {
         bg: [0, 0, 0, 255], panel: [30, 34, 44, 255], line: [110, 120, 140, 255], head: [168, 205, 255, 255],
         ink: [10, 10, 14, 255], accent: [168, 205, 255, 255], well: [0, 0, 0, 255],
     },
+    // Cream (layout cream.json): a retro cluster, cream dials on a charcoal ground.
+    cream: {
+        name: 'Cream',
+        fg: [58, 56, 46, 255], dim: [120, 118, 98, 255], track: [150, 148, 120, 255], arc: [30, 30, 26, 255],
+        glow: 0, stripe: false,
+        bar: { low: [30, 30, 26], mid: [200, 160, 60], high: [200, 40, 40], midAt: 'shift' },
+        rev: { from: [30, 30, 26], to: [200, 40, 40] },
+        bg: [22, 22, 20, 255], panel: [12, 12, 11, 255], line: [58, 58, 46, 255], head: [180, 175, 120, 255],
+        ink: [10, 10, 10, 255], accent: [200, 190, 130, 255], well: [22, 22, 20, 255],
+    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });

@@ -44,6 +44,7 @@ const TYPES = {
     beam: ['marks'],
     rails: ['segs'],
     dewdrops: ['drops'],
+    creamdial: ['dial', 'signal'],
     slant: ['line'],
     gaugemask: ['art', 'art2', 'signal'],
     pneedle: ['signal', 'marks'],

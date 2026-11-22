@@ -15,6 +15,7 @@ SPOTS = {
     'apex':        (810, 22, 300, 64, 'center', 'badge', 'dim', None),
     'arcd':        (810, 592, 300, 58, 'center', 'badge', 'dim', None),
     'dewdrop':     (1240, 560, 260, 54, 'center', 'badge', 'dim', None),
+    'cream':       (810, 256, 300, 44, 'center', 'badge', 'dim', None),
     'starlight':   (810, 56, 300, 56, 'center', 'badge', 'dim', None),
     'bluedials':   (830, 592, 200, 58, 'center', 'badge', 'dim', None),
     'classic':     (810, 40, 300, 90, 'center', 'badge', 'dim', None),
