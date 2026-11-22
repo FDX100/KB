@@ -3766,7 +3766,7 @@ void main() {
 
 // ---- the Dewdrop theme (layouts/dewdrop.json): rings of water drops round the speed, and a slanted glass panel
 const DEWDROPS = `// Rings of water drops (GLSL ES 1.00): every drop a little lens with a bright rim, a specular point and a caustic on the far side, in rings round the
-// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds. u_ring[4]: radius, number of drops, drop radius, wobble. The drops of the outer ring
+// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds (wrapping at 2520). Every drop is born, grows, stays and fades on its own cycle (7 to 12.6 s) and comes back a little elsewhere. u_ring[4]: radius, number of drops, drop radius, wobble. The drops of the outer ring
 // light up clockwise with the revs (cool white, then red near the redline). Straight alpha out.
 ` + FX_COMMON + `uniform vec4 u_c;
 uniform vec4 u_ring[4];
@@ -3806,8 +3806,15 @@ void main() {
         for (int j = -1; j <= 1; j++) {
             float id = a0 + float(j);
             float idw = mod(id, n);
-            float sd = float(k) * 17.0 + idw * 1.37;
-            float rr = rho * (0.70 + 0.38 * h21(vec2(sd, 4.0)));
+            float sd0 = float(k) * 17.0 + idw * 1.37;
+            float per = 2520.0 / (200.0 + floor(h21(vec2(sd0, 11.0)) * 160.0));
+            float cyc = tw / per + h21(vec2(sd0, 12.0));
+            float ph = fract(cyc);
+            float sd = sd0 + floor(cyc) * 3.713;
+            float life = smoothstep(0.0, 0.2, ph) * (1.0 - smoothstep(0.72, 1.0, ph));
+            life *= step(0.10, h21(vec2(sd, 9.0)));
+            float grow = mix(0.25, 1.0, smoothstep(0.0, 0.2, ph)) * mix(1.0, 0.8, smoothstep(0.72, 1.0, ph));
+            float rr = rho * (0.70 + 0.38 * h21(vec2(sd, 4.0))) * grow;
             float aa = (id + 0.5 + (h21(vec2(sd, 5.0)) - 0.5) * 0.45) * step_ - 3.14159265;
             float rj = R + (h21(vec2(sd, 6.0)) - 0.5) * u_ring[k].w;
             vec2 c = u_c.xy + rj * vec2(sin(aa), -cos(aa));
@@ -3817,8 +3824,9 @@ void main() {
                 lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75);
             }
             float sh = 0.82 + 0.18 * sin(tw * (0.6 + 1.4 * h21(vec2(sd, 7.0))) + 6.2831 * h21(vec2(sd, 8.0)));
-            vec4 dd = drop(p, c, rr, lit, sd);
+            vec4 dd = drop(p, c, rr, lit * life, sd);
             dd.rgb *= sh;
+            dd.a *= life;
             if (dd.a > acc.a) acc = dd;
         }
     }

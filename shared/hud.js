@@ -99,7 +99,7 @@
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
- *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (5)
+ *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
  *   ringfx    effect layer; the glowing ring round the speed (RINGFX): "ring" [centre x, centre y, radius, dark disc strength]
@@ -3914,7 +3914,7 @@ class HudApp {
             x.c.uniform(x.ref, 'u_a', [px - w.x, py - w.y, dx / n, dy / n]);
         } else if (w.type === 'dewdrops') {
             const rpm = this._raw('rpm'), v = Math.round(Math.min(1, Math.max(0, isNum(rpm) ? rpm / (w.rpmMax || 8000) : 0)) * 100) / 100;
-            const q = Math.floor(now / 1000 * (w.fps || 5)) / (w.fps || 5) % 1200;
+            const q = Math.floor(now / 1000 * (w.fps || 8)) / (w.fps || 8) % 2520;
             const key = v + '|' + q;
             if (!force && key === x.last) return;
             x.last = key;

@@ -54,7 +54,7 @@
       "h": 520,
       "conn": 2,
       "rpmMax": 8000,
-      "fps": 5,
+      "fps": 8,
       "drops": {
         "center": [
           929.4,
