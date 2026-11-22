@@ -42,6 +42,7 @@ const TYPES = {
     stars: ['sky'],
     ringfx: ['ring'],
     beam: ['marks'],
+    rails: ['segs'],
     gaugemask: ['art', 'art2', 'signal'],
     pneedle: ['signal', 'marks'],
     segarc: ['center', 'radii', 'tick', 'zones', 'angles'],

@@ -99,6 +99,10 @@
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
+ *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge]
+ *   ringfx    effect layer; the glowing ring round the speed (RINGFX): "ring" [centre x, centre y, radius, dark disc strength]
+ *   rails     effect layer; two thin rails into the ring on both sides, drawn by the shader (RAILS): "segs" four [x0, y0, x1, y1] of the left side, "red", "width"
+ *   beam      effect layer; a light curtain whose edge slides along "marks" [[thousand rpm, x], ...] with the revs (BEAM): "rail", "edge", "floor", "tip", "mirror", "hotFrom"
  *   gdial     effect layer; a glass-ring dial with a blue needle and comet glow (shaders.js GDIAL, the Glass theme): "rings", "start" / "sweep", "tail", "majors" /
  *             "minors" / "tickLen", "level" { radius, width, start, sweep, signal, min, max }, "redBand", "needle", "glow", "signal" with "min" / "max" ({ us, metric } or a number)
  *   gpoly     effect layer; soft gradient polygons and glowing lines (shaders.js GPOLY, the Glass theme's road and brackets): "polys", "lines", the map window as "hole"
@@ -2866,6 +2870,12 @@ class HudApp {
             // the ring round the speed (shaders.js RINGFX): "ring" [centre x, centre y (target px), radius, strength of the dark disc]
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
+        } else if (w.type === 'rails') {
+            // the rails into the ring (shaders.js RAILS), both sides at once: "segs" four [x0, y0, x1, y1] in the left side's target px (the first two
+            // are the outer rail, which turns red over "red" px towards the edge), "width"
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            w.segs.forEach((g, i) => c.uniform(ref, 'u_s' + i, [g[0] - w.x, g[1] - w.y, g[2] - w.x, g[3] - w.y]));
+            c.uniform(ref, 'u_r', [w.red || 150, w.width || 1.6, 0, 0]);
         } else if (w.type === 'beam') {
             // a light curtain that follows the revs (shaders.js BEAM), drawn in the LEFT side's coordinates ("mirror": the right side): "rail" y, "edge"
             // [top y, bottom y], "floor" [x0, y0, x1, y1], "tip" x, "marks" [[thousand rpm, edge x], ...], "hotFrom" (thousand rpm where it turns red)

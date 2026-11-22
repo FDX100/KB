@@ -3607,12 +3607,13 @@ float star(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
     float d = length((f - c) * cell);
     float b = h21(g + seed + 11.3);
     float rad = rmin + b * (rmax - rmin);
-    return (1.0 - smoothstep(0.0, rad, d)) * (0.35 + 0.65 * b);
+    float core = 1.0 - smoothstep(0.0, rad, d);
+    return (core * core * (3.0 - 2.0 * core) + exp(-d * d / (rad * rad * 7.0)) * 0.22 * step(2.0, rad)) * (0.35 + 0.65 * b);
 }
 void main() {
     vec2 p = v_uv * u_size;
     float fall = 1.0 - smoothstep(u_k.x, u_k.y, p.y);
-    float a = star(p, 15.0, 1.0, 0.80, 0.7, 1.5) + star(p, 40.0, 5.0, 0.74, 1.1, 2.3) + star(p, 110.0, 9.0, 0.84, 2.2, 3.6);
+    float a = star(p, 15.0, 1.0, 0.80, 0.9, 1.6) + star(p, 40.0, 5.0, 0.74, 1.2, 2.4) + star(p, 110.0, 9.0, 0.84, 2.2, 3.6);
     a = clamp(a, 0.0, 1.0) * fall;
     float e = exp(-pow((p.y - u_k.z) / 5.0, 2.0)) * (0.18 + 0.82 * exp(-pow((p.x - u_size.x * 0.5) / 340.0, 2.0)));
     gl_FragColor = vec4(vec3(0.84, 0.89, 1.0), clamp(a + e * 0.7, 0.0, 1.0));
@@ -3637,12 +3638,48 @@ void main() {
     float a = max(disc, lum);
     gl_FragColor = vec4(vec3(0.80, 0.88, 1.0) * (lum / max(a, 0.001)), a);
 }`;
+const RAILS = `// The two thin rails that run into the ring, for both sides at once (GLSL ES 1.00): four segments in the left side's coordinates (u_s0..3 = x0, y0,
+// x1, y1), drawn anti-aliased; the outer rail turns red towards the edge (u_r: red reach in px, the rail's width). Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_s0;
+uniform vec4 u_s1;
+uniform vec4 u_s2;
+uniform vec4 u_s3;
+uniform vec4 u_r;
+float segd(vec2 p, vec4 s) {
+    vec2 a = s.xy, b = s.zw;
+    vec2 pa = p - a, ba = b - a;
+    return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0));
+}
+void main() {
+    vec2 p = v_uv * u_size;
+    p.x = min(p.x, u_size.x - p.x);
+    float w = u_r.y;
+    float c0 = clamp(w * 0.5 + 0.5 - segd(p, u_s0), 0.0, 1.0);
+    float c1 = clamp(w * 0.5 + 0.5 - segd(p, u_s1), 0.0, 1.0);
+    float c2 = clamp(w * 0.5 + 0.5 - segd(p, u_s2), 0.0, 1.0);
+    float c3 = clamp(w * 0.5 + 0.5 - segd(p, u_s3), 0.0, 1.0);
+    float outer = max(c0, c1) * 0.62;
+    float flo = max(c2, c3) * 0.80;
+    float red = 1.0 - smoothstep(0.0, u_r.x, p.x);
+    vec3 grey = vec3(0.69, 0.75, 0.88);
+    vec3 col = flo >= outer ? grey : mix(grey, vec3(0.93, 0.24, 0.24), red);
+    float a = max(outer, flo);
+    gl_FragColor = vec4(col, a);
+}`;
 const BEAM = `// A curtain of light that follows the revs (GLSL ES 1.00): a vertical edge, a wedge of drifting dust between the upper rail and a bright floor
 // that runs down to the ring, and a faint haze over the rail. Drawn for the left side; u_c.y = 1 mirrors it for the right one.
 // u_a: edge x, rail y, edge top y, edge bottom y. u_b: floor from (x0, y0) to (x1, y1). u_c: red amount, mirror, tip x.
 ` + FX_COMMON + `uniform vec4 u_a;
 uniform vec4 u_b;
 uniform vec4 u_c;
+float dust(vec2 p, float cell, float seed, float thr, float rad) {
+    vec2 g = floor(p / cell);
+    vec2 f = p / cell - g;
+    if (h21(g + seed) < thr) return 0.0;
+    vec2 c = vec2(h21(g + seed + 3.1), h21(g + seed + 7.7)) * 0.7 + 0.15;
+    float d = length((f - c) * cell);
+    return (1.0 - smoothstep(0.0, rad, d)) * (0.4 + 0.6 * h21(g + seed + 1.3));
+}
 void main() {
     vec2 p = v_uv * u_size;
     if (u_c.y > 0.5) p.x = u_size.x - p.x;
@@ -3658,8 +3695,7 @@ void main() {
     float g2 = exp(-(p.x - ex) / 24.0);
     float a = wedge * (0.07 + 0.80 * g1 + 0.22 * g2) * (1.0 - 0.5 * t);
     a += inx * step(u_a.y, p.y) * step(yf, p.y) * exp(-(p.y - yf) / 7.0) * 0.30 * (1.0 - 0.6 * t);
-    float n = h21(floor(p * 0.55) + 17.0);
-    a += wedge * max(n - 0.84, 0.0) * 7.0 * (0.25 + 1.2 * g1 + 0.6 * g2);
+    a += wedge * (dust(p, 5.0, 31.0, 0.55, 1.5) + dust(p, 9.0, 57.0, 0.70, 1.9)) * (0.30 + 1.1 * g1 + 0.6 * g2);
     a += inx * (exp(-pow((p.y - yf) / 1.3, 2.0)) * 0.95 + exp(-pow((p.y - yf) / 5.0, 2.0)) * 0.35) * step(u_a.y, p.y) * (1.0 - 0.6 * t);
     float ey = ex + 0.03 * (p.y - u_a.z);
     float ev = smoothstep(u_a.z, u_a.z + 90.0, p.y) * (1.0 - smoothstep(yfe - 12.0, yfe + 2.0, p.y));
@@ -3672,4 +3708,4 @@ void main() {
     gl_FragColor = vec4(col, a);
 }`;
 
-module.exports = { stars: STARS, ringfx: RINGFX, beam: BEAM, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+module.exports = { stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
