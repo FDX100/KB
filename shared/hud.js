@@ -102,7 +102,7 @@
  *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red, shine (1) }, "signal", "min", "max" ({ metric, us }); the face turns dim amber at night (nightDim Auto, after sunset)
  *   radar     effect layer; a radar-sweep rev gauge (shaders.js RADAR, the Radar theme): "radar" { center, radius }, "rpmMax" (10000); a load arc (powerPct) beyond the 7
  *   neonarc   effect layer; a big thin neon ellipse arc (NEONARC): "ellipse" { center, axes, half, core }
- *   neonlamp  effect layer; neon line drawings (NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness] x16], "ring" [x, y, radius, width]
+ *   neonlamp  effect layer; neon line drawings (NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness (negative: amber)] x16], "rings" [[x, y, radius, width, brightness] x4], "haze" (0..1)
  *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
@@ -2905,7 +2905,7 @@ class HudApp {
             c.uniform(ref, 'u_e', [w.ellipse.center[0] - w.x, w.ellipse.center[1] - w.y, w.ellipse.axes[0], w.ellipse.axes[1]]);
             c.uniform(ref, 'u_f', [w.ellipse.half, w.ellipse.core === undefined ? 1 : w.ellipse.core, 0, 0]);
         } else if (w.type === 'neonlamp') {
-            // neon lines (shaders.js NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness], ...] (at most 16, target px) and "ring" [x, y, radius, width]
+            // neon lines (shaders.js NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness], ...] (at most 16, target px) and "rings"
             c.uniform(ref, 'u_size', [w.w, w.h]);
             const sg = [], wd = [];
             for (let i = 0; i < 16; i++) {
@@ -2915,8 +2915,15 @@ class HudApp {
             }
             c.uniform(ref, 'u_s', sg.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
             c.uniform(ref, 'u_w', wd.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
-            c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
-            c.uniform(ref, 'u_n', [Math.min(16, w.segs.length), 0, 0, 0]);
+            const rg = [], rb = [];
+            for (let i = 0; i < 4; i++) {
+                const g = (w.rings || [])[i];
+                rg.push(g ? [g[0] - w.x, g[1] - w.y, g[2], g[3]] : [0, 0, 0, 0]);
+                rb.push(g ? g[4] : 0);
+            }
+            c.uniform(ref, 'u_r', rg.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
+            c.uniform(ref, 'u_b', rb);
+            c.uniform(ref, 'u_n', [Math.min(16, w.segs.length), Math.min(4, (w.rings || []).length), w.haze || 0, 0]);
         } else if (w.type === 'dewdrops') {
             // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes to travel, wobble, 1: outwards from the speed (0: inwards)], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);

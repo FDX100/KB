@@ -49,34 +49,50 @@ W.append(text('rpm_l', GC[0], GC[1] + 203, 140, 'rd_small', 'RPM', WHITE, 'cente
 # ---- the gear (left) and the speed (right), with the thin lines that join them to the gauge
 W.append(text('gear', X(275), Y(455), 130, 'rd_big', '{{gearN}}', WHITE, 'center'))
 W.append(text('speed', X(775), Y(455), 300, 'rd_big', '{{speed}}', WHITE, 'center'))
-W.append(text('speed_u', X(850), Y(470), 120, 'rd_unit', '{{u:speed}}', DIM, 'left'))
+W.append(text('speed_u', X(850) - 14, Y(470) + 4, 120, 'rd_unit', '{{u:speed}}', DIM, 'left'))
 W.append({'id': 'line_l', 'type': 'fill', 'class': 'content', 'z': 3, 'x': round(X(268)), 'y': round(Y(412)), 'w': round(X(328) - X(268)), 'h': 1, 'color': [60, 150, 90, 255]})
 W.append({'id': 'line_r', 'type': 'fill', 'class': 'content', 'z': 3, 'x': round(X(696)), 'y': round(Y(412)), 'w': round(X(752) - X(696)), 'h': 1, 'color': [60, 150, 90, 255]})
 # ---- the small print under the arc
 W.append(text('range', X(152), Y(263), 220, 'rd_small', '{{range}} {{u:distLc}}', DIM, 'center'))
 W.append(text('clock', X(873), Y(263), 220, 'rd_small', '{{time}} {{ampm}}', DIM, 'center'))
-# ---- the neon headlamps, drawn in the photo's pixels (the left one, the right one mirrored) at 1.3 times
-HL = [  # [x0, y0, x1, y1, width, brightness]: the lens' top edge, its bottom edge, the reflector, the lower light
-    (66, 384, 96, 377, 2.4, 1.0), (96, 377, 140, 378, 2.4, 1.0), (140, 378, 180, 390, 2.4, 1.0), (180, 390, 214, 408, 2.4, 1.0),
-    (66, 398, 110, 406, 2.0, 0.85), (110, 406, 170, 410, 2.0, 0.85), (170, 410, 214, 414, 2.0, 0.85),
-    (146, 398, 170, 396, 1.6, 0.75), (170, 396, 192, 402, 1.6, 0.75),
-    (78, 438, 78, 466, 5.0, 1.0), (78, 466, 86, 484, 5.0, 1.0), (86, 484, 100, 494, 5.0, 1.0), (100, 494, 122, 498, 5.0, 1.0),
-]
-LS, LW, LH = 1.3, 320, 270
+# ---- the BMW headlamps, drawn as neon lines in the photo's pixels (zoomed crop coordinates: x' = 50 + zx / 5, y' = 360 + zy / 5; the left lamp, the right one mirrored)
+def Z(zx, zy): return (50 + zx / 5.0, 360 + zy / 5.0)
+
+
+def poly(zs, w, b):
+    pts = [Z(*q) for q in zs]
+    return [(a[0], a[1], c[0], c[1], w, b) for a, c in zip(pts[:-1], pts[1:])]
+
+
+UPPER = (poly([(88, 125), (95, 200), (118, 262), (200, 277), (400, 283), (620, 282), (740, 272), (800, 238)], 3.0, 1.0)      # the daytime light along the lens
+         + poly([(65, 110), (450, 140), (850, 255)], 1.1, 0.35)                                                          # the housing, top edge
+         + poly([(70, 292), (450, 302), (845, 262)], 1.1, 0.35)                                                          # the housing, bottom edge
+         + poly([(440, 180), (462, 225), (500, 245), (650, 248), (682, 215)], 2.4, 0.9)                                    # the U in the lens
+         + [(*Z(82, 160), *Z(90, 232), 3.0, -0.95)])                                                                       # the turn signal, amber
+UPPER_RINGS = [(*Z(368, 200), 9.0, 3.0, 1.0), (*Z(368, 200), 5.6, 1.6, 0.8), (*Z(205, 190), 7.2, 1.2, 0.35), (*Z(560, 190), 6.0, 1.2, 0.35)]
+LOWER = (poly([(140, 405), (150, 480), (175, 580), (230, 650), (310, 695), (410, 725)], 3.8, 1.0)                           # the light bar in the bumper
+         + poly([(125, 400), (640, 470), (720, 540)], 1.1, 0.3) + poly([(410, 728), (640, 640)], 1.1, 0.3))
+LS = 1.4
 for side in ('l', 'r'):
-    cx = X(140) if side == 'l' else 1920 - X(140)
+    cx = X(140) - 50 if side == 'l' else 1920 - X(140) + 50
     cy = Y(440)
-    x0, y0 = round(cx - LW / 2), round(cy - LH / 2)
 
     def pt(px, py):
         qx = (px - 140) if side == 'l' else -(px - 140)
         return round(cx + qx * LS, 1), round(cy + (py - 440) * LS, 1)
-    segs = []
-    for (ax, ay, bx, by, wd, br) in HL:
-        (a, b), (c, d) = pt(ax, ay), pt(bx, by)
-        segs.append([a, b, c, d, round(wd * 1.45, 1), br])
-    ring = list(pt(124, 400)) + [round(10 * LS, 1), 1.8]
-    W.append({'id': 'lamp_' + side, 'type': 'neonlamp', 'class': 'content', 'z': 1, 'x': x0, 'y': y0, 'w': LW, 'h': LH, 'conn': 3, 'segs': segs, 'ring': ring})
+    for nm, items, rings, y0, h, haze in (('up', UPPER, UPPER_RINGS, 340, 110, 0.9), ('low', LOWER, [], 436, 140, 0)):
+        segs = []
+        for (ax, ay, bx, by, wd, br) in items:
+            (a, b), (c, d) = pt(ax, ay), pt(bx, by)
+            segs.append([a, b, c, d, round(wd * 1.25, 1), br])
+        rg = [list(pt(r[0], r[1])) + [round(r[2] * LS, 1), r[3], r[4]] for r in rings]
+        ly0 = Y(y0 if nm == 'up' else 440 + (y0 - 436) )  # placeholder, replaced below
+        ys = [v for sg in segs for v in (sg[1], sg[3])] + [r[1] for r in rg]
+        xs = [v for sg in segs for v in (sg[0], sg[2])] + [r[0] for r in rg]
+        pad = 26
+        bx0, by0 = round(min(xs) - pad), round(min(ys) - pad - 12)
+        bw, bh = round(max(xs) - min(xs) + 2 * pad), round(max(ys) - min(ys) + 2 * pad + 24)
+        W.append({'id': 'lamp_%s_%s' % (nm, side), 'type': 'neonlamp', 'class': 'content', 'z': 1, 'x': bx0, 'y': by0, 'w': bw, 'h': bh, 'conn': 3, 'segs': segs, 'rings': rg, 'haze': haze})
 for w in json.load(open(STRIP))['widgets']:
     if str(w['id']).startswith('strip_cover'):
         W.append(w)
