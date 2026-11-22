@@ -3933,7 +3933,9 @@ void main() {
 const RADAR = `// A radar-sweep rev gauge (GLSL ES 1.00): a white ring from 0 to 7 (x1000 rpm, 29 degrees a thousand, the 0 at the lower left), a grey band inside it, a dark
 // disc with a green sweep that runs clockwise from the needle back round to the 0, a halftone of dots just behind the needle, the thin white needle, and
 // beyond the 7 a short arc with a green fill (the load). u_c: centre x, y, ring radius. u_s: the revs 0..1 (of 10 000), the load 0..1. Straight alpha out.
-` + FX_COMMON + `uniform vec4 u_c;
+` + FX_COMMON + `uniform float u_tint;
+vec3 redTint(vec3 c, float k) { return mix(c, vec3(min(c.g * 1.05, 1.0), c.r * 0.17 + c.b * 0.05, c.b * 0.10 + c.r * 0.04), k); }
+uniform vec4 u_c;
 uniform vec4 u_s;
 vec4 g_acc;
 void lay(vec3 col, float a) {
@@ -3987,11 +3989,13 @@ void main() {
     lay(gcol, clamp(5.0 + 0.5 - abs(r - r2), 0.0, 1.0) * fill);
     float glow = exp(-pow((r - r2) / 9.0, 2.0)) * fill * 0.25;
     lay(vec3(0.2, 0.95, 0.45), glow);
-    gl_FragColor = vec4(g_acc.rgb / max(g_acc.a, 0.001), g_acc.a);
+    gl_FragColor = vec4(redTint(g_acc.rgb / max(g_acc.a, 0.001), u_tint), g_acc.a);
 }`;
 const NEONARC = `// A big thin neon arc across the top (GLSL ES 1.00): the upper half of an ellipse with a glowing core and a halo, brightest in the middle and fading out to
 // both ends. u_e: centre x, y (layer px), semi axes a, b. u_f: half width of the part that shows (px), the core strength. Straight alpha out.
-` + FX_COMMON + `uniform vec4 u_e;
+` + FX_COMMON + `uniform float u_tint;
+vec3 redTint(vec3 c, float k) { return mix(c, vec3(min(c.g * 1.05, 1.0), c.r * 0.17 + c.b * 0.05, c.b * 0.10 + c.r * 0.04), k); }
+uniform vec4 u_e;
 uniform vec4 u_f;
 void main() {
     vec2 p = v_uv * u_size - u_e.xy;
@@ -4006,12 +4010,14 @@ void main() {
     float top = exp(-pow(p.x / 260.0, 2.0));
     float a = clamp((core + halo) * body * (0.35 + 0.65 * top), 0.0, 1.0);
     vec3 col = mix(vec3(0.38, 0.85, 0.36), vec3(0.78, 1.0, 0.66), clamp(core * top, 0.0, 1.0));
-    gl_FragColor = vec4(col, a);
+    gl_FragColor = vec4(redTint(col, u_tint), a);
 }`;
 const NEONLAMP = `// A neon line drawing (GLSL ES 1.00): chains of vertices (u_v: x, y, width, brightness; a width at or under 0 starts a new chain; a negative brightness is amber)
 // drawn as lines with a core and a soft glow, up to 4 rings (u_r: centre x, y, radius, width (100 and over: a hexagon), u_b: their brightness), and a dark glossy
 // filled body (u_f: up to 8 corners, count in u_n.w) with a faint green haze; the glow breathes, dimming and growing again (u_t: seconds): the BMW headlamps of the Radar theme. Straight alpha out.
-` + FX_COMMON + `uniform vec4 u_v[28];
+` + FX_COMMON + `uniform float u_tint;
+vec3 redTint(vec3 c, float k) { return mix(c, vec3(min(c.g * 1.05, 1.0), c.r * 0.17 + c.b * 0.05, c.b * 0.10 + c.r * 0.04), k); }
+uniform vec4 u_v[28];
 uniform vec4 u_r[4];
 uniform vec4 u_b;
 uniform vec4 u_n;
@@ -4080,7 +4086,7 @@ void main() {
     vec3 col = mix(green, vec3(1.0, 0.62, 0.12), clamp(amber * 1.6, 0.0, 1.0));
     float lum = core + glow;
     col = (col * lum + bodyC * bodyA) / max(lum + bodyA, 0.001);
-    gl_FragColor = vec4(col, a);
+    gl_FragColor = vec4(redTint(col, u_tint * (1.0 - clamp(amber * 1.6, 0.0, 1.0))), a);
 }`;
 
 module.exports = { radar: RADAR, neonarc: NEONARC, neonlamp: NEONLAMP, creamdial: CREAMDIAL, dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };

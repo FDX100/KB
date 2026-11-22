@@ -241,6 +241,16 @@ const THEMES = {
         night: { fg: [255, 178, 84, 255], big: [255, 196, 110, 255], dim: [150, 110, 60, 255] },
         ink: [10, 10, 10, 255], accent: [200, 190, 130, 255], well: [22, 22, 20, 255],
     },
+    // Radar Red (layout radarred.json): the sporty red version of Radar.
+    radarred: {
+        name: 'Radar Red',
+        fg: [248, 244, 242, 255], dim: [150, 120, 118, 255], track: [58, 44, 44, 255], arc: [236, 60, 50, 255],
+        glow: 0, stripe: false,
+        bar: { low: [236, 60, 50], mid: [255, 150, 60], high: [255, 60, 50], midAt: 'shift' },
+        rev: { from: [236, 60, 50], to: [255, 120, 80] },
+        bg: [0, 0, 0, 255], panel: [12, 8, 8, 255], line: [130, 70, 66, 255], head: [236, 60, 50, 255],
+        ink: [10, 6, 6, 255], accent: [236, 60, 50, 255], well: [0, 0, 0, 255],
+    },
     // Radar (layout radar.json): black, white and a radar green.
     radar: {
         name: 'Radar',

@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Eighteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -214,6 +214,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
@@ -320,6 +324,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
@@ -420,6 +428,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
@@ -520,6 +532,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
@@ -624,6 +640,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
@@ -728,6 +748,10 @@
         [
           "radar",
           "Radar"
+        ],
+        [
+          "radarred",
+          "Radar Red"
         ]
       ]
     },
