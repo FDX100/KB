@@ -51,7 +51,7 @@ BY0 = round(EDGE_TOP - 18)
 BH = round(EDGE_BOT + 14 - BY0)
 SCALE_L = [(0, C(732, 0)[0]), (1, C(667, 0)[0]), (2, C(594, 0)[0]), (3, C(516, 0)[0]), (4, C(443, 0)[0]), (5, C(362, 0)[0]), (6, C(272, 0)[0]), (7, C(180, 0)[0]), (8, C(88, 0)[0])]
 beam = {'type': 'beam', 'class': 'content', 'z': 3, 'y': BY0, 'w': 800, 'h': BH, 'conn': 2, 'rail': RAIL, 'edge': [EDGE_TOP, EDGE_BOT], 'floor': FLOOR, 'tip': C(822, 0)[0],
-        'marks': [[v, x] for v, x in SCALE_L], 'hotFrom': 6.4}
+        'marks': [[v, x] for v, x in SCALE_L], 'red': [SCALE_L[7][1] + 14, SCALE_L[8][1] - 8]}
 W.append(dict(beam, id='beam_l', x=0, mirror=False))
 W.append(dict(beam, id='beam_r', x=1120, mirror=True))
 # ---- the numbers 0..8 on both sides, positions read off the video (the outer ones bigger and whiter, 8 red)

@@ -3668,7 +3668,8 @@ void main() {
 }`;
 const BEAM = `// A curtain of light that follows the revs (GLSL ES 1.00): a vertical edge, a wedge of drifting dust between the upper rail and a bright floor
 // that runs down to the ring, and a faint haze over the rail. Drawn for the left side; u_c.y = 1 mirrors it for the right one.
-// u_a: edge x, rail y, edge top y, edge bottom y. u_b: floor from (x0, y0) to (x1, y1). u_c: red amount, mirror, tip x.
+// u_a: edge x, rail y, edge top y, edge bottom y. u_b: floor from (x0, y0) to (x1, y1). u_c: x where the red tint starts (the 7), mirror, tip x,
+// x where it is fully red (the 8): the curtain turns violet and then red over that stretch, as it reaches towards the 8.
 ` + FX_COMMON + `uniform vec4 u_a;
 uniform vec4 u_b;
 uniform vec4 u_c;
@@ -3703,8 +3704,10 @@ void main() {
     float hz = step(ex, p.x) * (1.0 - smoothstep(0.0, 170.0, p.x - ex)) * smoothstep(u_a.z, u_a.y, p.y) * (1.0 - smoothstep(u_a.y - 4.0, u_a.y, p.y));
     a += hz * 0.16;
     a = clamp(a, 0.0, 1.0);
-    vec3 col = mix(vec3(0.80, 0.89, 1.0), vec3(1.0, 0.27, 0.33), u_c.x);
-    col = mix(col, vec3(1.0), (1.0 - u_c.x) * clamp(a - 0.5, 0.0, 0.5));
+    float k = 1.0 - smoothstep(u_c.w, u_c.x, p.x);
+    vec3 col = mix(vec3(0.80, 0.89, 1.0), mix(vec3(0.66, 0.46, 1.0), vec3(1.0, 0.20, 0.26), smoothstep(0.35, 1.0, k)), smoothstep(0.0, 0.55, k));
+    col = mix(col, vec3(1.0), (1.0 - k) * clamp(a - 0.5, 0.0, 0.5));
+    a = clamp(a * (1.0 + 1.3 * k) + k * wedge * 0.12, 0.0, 1.0);
     gl_FragColor = vec4(col, a);
 }`;
 

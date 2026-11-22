@@ -102,7 +102,7 @@
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge]
  *   ringfx    effect layer; the glowing ring round the speed (RINGFX): "ring" [centre x, centre y, radius, dark disc strength]
  *   rails     effect layer; two thin rails into the ring on both sides, drawn by the shader (RAILS): "segs" four [x0, y0, x1, y1] of the left side, "red", "width"
- *   beam      effect layer; a light curtain whose edge slides along "marks" [[thousand rpm, x], ...] with the revs (BEAM): "rail", "edge", "floor", "tip", "mirror", "hotFrom"
+ *   beam      effect layer; a light curtain whose edge slides along "marks" [[thousand rpm, x], ...] with the revs (BEAM): "rail", "edge", "floor", "tip", "mirror", "red" [x of the 7, x of the 8] (violet, then red, over that stretch)
  *   gdial     effect layer; a glass-ring dial with a blue needle and comet glow (shaders.js GDIAL, the Glass theme): "rings", "start" / "sweep", "tail", "majors" /
  *             "minors" / "tickLen", "level" { radius, width, start, sweep, signal, min, max }, "redBand", "needle", "glow", "signal" with "min" / "max" ({ us, metric } or a number)
  *   gpoly     effect layer; soft gradient polygons and glowing lines (shaders.js GPOLY, the Glass theme's road and brackets): "polys", "lines", the map window as "hole"
@@ -2878,11 +2878,11 @@ class HudApp {
             c.uniform(ref, 'u_r', [w.red || 150, w.width || 1.6, 0, 0]);
         } else if (w.type === 'beam') {
             // a light curtain that follows the revs (shaders.js BEAM), drawn in the LEFT side's coordinates ("mirror": the right side): "rail" y, "edge"
-            // [top y, bottom y], "floor" [x0, y0, x1, y1], "tip" x, "marks" [[thousand rpm, edge x], ...], "hotFrom" (thousand rpm where it turns red)
+            // [top y, bottom y], "floor" [x0, y0, x1, y1], "tip" x, "marks" [[thousand rpm, edge x], ...], "red" [x of the 7, x of the 8]: it turns violet, then red, over that stretch
             c.uniform(ref, 'u_size', [w.w, w.h]);
             c.uniform(ref, 'u_a', [0, w.rail - w.y, w.edge[0] - w.y, w.edge[1] - w.y]);
             c.uniform(ref, 'u_b', [w.floor[0], w.floor[1] - w.y, w.floor[2], w.floor[3] - w.y]);
-            c.uniform(ref, 'u_c', [0, w.mirror ? 1 : 0, w.tip, 0]);
+            c.uniform(ref, 'u_c', [w.red[0], w.mirror ? 1 : 0, w.tip, w.red[1]]);
         } else if (w.type === 'segarc') {
             // the Arc Digital theme's rev arc (shaders.js SEGARC): "center" [x, y] (target px), "radii" [slat in, slat out, tick in, tick out],
             // "tick" [half tick length, width, red block reach], "zones" [yellow, orange, red from, end] (thousands), "angles" degrees at 0..10 thousand
@@ -3905,12 +3905,9 @@ class HudApp {
             const a = m[i], b = m[Math.min(m.length - 1, i + 1)];
             const f = b[0] === a[0] ? 0 : Math.min(1, Math.max(0, (k - a[0]) / (b[0] - a[0])));
             const ex = Math.round((a[1] + (b[1] - a[1]) * f) * 2) / 2;
-            const h0 = w.hotFrom === undefined ? 7 : w.hotFrom, hot = Math.round(Math.min(1, Math.max(0, (k - h0) / (8 - h0))) * 20) / 20;
-            const key = ex + '|' + hot;
-            if (!force && key === x.last) return;
-            x.last = key;
+            if (!force && ex === x.last) return;
+            x.last = ex;
             x.c.uniform(x.ref, 'u_a', [ex, w.rail - w.y, w.edge[0] - w.y, w.edge[1] - w.y]);
-            x.c.uniform(x.ref, 'u_c', [hot, w.mirror ? 1 : 0, w.tip, 0]);
         } else if (w.type === 'segarc') {
             const rpm = this._raw('rpm'), q = Math.round((isNum(rpm) ? Math.max(0, rpm) / 1000 : 0) * 100) / 100;
             if (!force && q === x.last) return;
