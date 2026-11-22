@@ -3704,10 +3704,14 @@ void main() {
     float hz = step(ex, p.x) * (1.0 - smoothstep(0.0, 170.0, p.x - ex)) * smoothstep(u_a.z, u_a.y, p.y) * (1.0 - smoothstep(u_a.y - 4.0, u_a.y, p.y));
     a += hz * 0.16;
     a = clamp(a, 0.0, 1.0);
-    float k = 1.0 - smoothstep(u_c.w, u_c.x, p.x);
-    vec3 col = mix(vec3(0.80, 0.89, 1.0), mix(vec3(0.66, 0.46, 1.0), vec3(1.0, 0.20, 0.26), smoothstep(0.35, 1.0, k)), smoothstep(0.0, 0.55, k));
+    float k = 1.0 - smoothstep(u_c.w + (u_c.x - u_c.w) * 0.35, u_c.x, p.x);
+    float kE = 1.0 - smoothstep(u_c.w + (u_c.x - u_c.w) * 0.35, u_c.x, ex);
+    a += wedge * k * (0.10 + 0.50 * g1);
+    float lh = step(p.x, ex) * exp(-(ex - p.x) / 30.0) * smoothstep(u_a.z, u_a.z + 60.0, p.y) * (1.0 - smoothstep(yfe - 6.0, yfe + 10.0, p.y));
+    a += kE * lh * 0.42;
+    a = clamp(a * (1.0 + 1.6 * k), 0.0, 1.0);
+    vec3 col = mix(vec3(0.80, 0.89, 1.0), mix(vec3(0.66, 0.46, 1.0), vec3(1.0, 0.16, 0.22), smoothstep(0.25, 0.9, k)), smoothstep(0.0, 0.45, k));
     col = mix(col, vec3(1.0), (1.0 - k) * clamp(a - 0.5, 0.0, 0.5));
-    a = clamp(a * (1.0 + 1.3 * k) + k * wedge * 0.12, 0.0, 1.0);
     gl_FragColor = vec4(col, a);
 }`;
 
