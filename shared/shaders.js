@@ -3766,7 +3766,7 @@ void main() {
 
 // ---- the Dewdrop theme (layouts/dewdrop.json): rings of water drops round the speed, and a slanted glass panel
 const DEWDROPS = `// Rings of water drops (GLSL ES 1.00): every drop a little lens with a bright rim, a specular point and a caustic on the far side, in rings round the
-// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds (wrapping at 2520). Seconds wrap at 2520. u_ring[0]: outer radius, inner radius, drops per ring, biggest drop radius. u_ring[1]: rings, seconds for a drop to travel, wobble. Rings of drops are born at the
+// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds (wrapping at 2520). Seconds wrap at 2520. u_ring[0]: outer radius, inner radius, drops per ring, biggest drop radius. u_ring[1]: rings, seconds for a drop to travel, wobble, 1 = travelling outwards (born at the speed, 0 = inwards). Rings of drops are born at the
 // outside, small, travel inwards away from the viewer growing then shrinking, and fade out at the speed; the outer ones light up clockwise with the revs.
 ` + FX_COMMON + `uniform vec4 u_c;
 uniform vec4 u_ring[4];
@@ -3802,6 +3802,7 @@ void main() {
     float L = u_ring[1].x;
     float T = u_ring[1].y;
     float wob = u_ring[1].z;
+    float dirOut = u_ring[1].w;
     float step_ = 6.2831853 / n;
     vec4 acc = vec4(0.0);
     for (int j = 0; j < 6; j++) {
@@ -3811,21 +3812,22 @@ void main() {
         float gen = floor(cyc);
         float stag = mod(float(j), 2.0) * 0.5;
         float a0 = floor((ang + 3.14159265) / step_ - stag);
-        if (abs(rad - mix(Rout, Rin, e0)) > rhoMax * 1.6 + wob) continue;
+        if (abs(rad - mix(Rout, Rin, mix(e0, 1.0 - e0, dirOut))) > rhoMax * 1.6 + wob) continue;
         for (int m = -1; m <= 1; m++) {
             float id = a0 + float(m);
             float idw = mod(id, n);
             float sd = float(j) * 13.7 + idw * 1.37 + gen * 3.713;
             float e = e0 + (h21(vec2(sd, 3.0)) - 0.5) * 0.025;
             if (e < 0.0 || e > 1.0) continue;
-            float prof = pow(sin(3.14159265 * e), 0.7);
+            float prof = mix(pow(sin(3.14159265 * e), 0.7), pow(e, 0.6), dirOut);
             float life = smoothstep(0.0, 0.1, e) * (1.0 - smoothstep(0.80, 1.0, e)) * step(0.08, h21(vec2(sd, 9.0)));
-            float R = mix(Rout, Rin, e) + (h21(vec2(sd, 6.0)) - 0.5) * wob;
+            float eo = mix(e, 1.0 - e, dirOut);
+            float R = mix(Rout, Rin, eo) + (h21(vec2(sd, 6.0)) - 0.5) * wob;
             float rr = min(rhoMax * (0.62 + 0.46 * h21(vec2(sd, 4.0))) * (0.16 + 0.84 * prof), 0.36 * step_ * R);
             float aa = (id + 0.5 + stag + (h21(vec2(sd, 5.0)) - 0.5) * 0.16) * step_ - 3.14159265;
             vec2 c = u_c.xy + R * vec2(sin(aa), -cos(aa));
             float f = fract((aa + 2.356194) / 6.2831853);
-            float lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75) * (1.0 - smoothstep(0.12, 0.34, e)) * life;
+            float lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75) * (1.0 - smoothstep(0.12, 0.34, eo)) * life;
             float sh = 0.82 + 0.18 * sin(tw * (0.6 + 1.4 * h21(vec2(sd, 7.0))) + 6.2831 * h21(vec2(sd, 8.0)));
             vec4 dd = drop(p, c, rr, lit, sd);
             dd.rgb *= sh;
