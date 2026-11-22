@@ -96,7 +96,7 @@ for side in ('l', 'r'):
     def layer(nm, z, chains, rings, fill, haze):
         pts = [(v[0], v[1]) for ch in chains for v in ch] + [(r[0], r[1]) for r in rings] + list(fill)
         xs, ys = [q[0] for q in pts], [q[1] for q in pts]
-        pad = 30
+        pad = 46
         x0, y0 = round(min(xs) - pad), round(min(ys) - pad)
         d = {'id': 'lamp_%s_%s' % (nm, side), 'type': 'neonlamp', 'class': 'content', 'z': z, 'x': x0, 'y': y0, 'w': round(max(xs) - min(xs) + 2 * pad), 'h': round(max(ys) - min(ys) + 2 * pad),
              'conn': 3, 'chains': chains, 'rings': rings, 'fill': [list(q) for q in fill], 'haze': haze}

@@ -4040,7 +4040,8 @@ void main() {
         float c = clamp(w * 0.5 + 0.5 - d, 0.0, 1.0) * br;
         if (b.w < 0.0) amber = max(amber, c);
         core = max(core, c);
-        glow = max(glow, exp(-d / (3.4 + w * 1.1)) * 0.55 * br);
+        glow = max(glow, exp(-d / (3.8 + w * 1.2)) * 0.6 * br);
+        glow += exp(-d / (8.0 + w * 1.5)) * 0.07 * br;
     }
     for (int j = 0; j < 4; j++) {
         if (float(j) >= u_n.y) break;
@@ -4049,7 +4050,8 @@ void main() {
         if (wj >= 100.0) { dr = abs(hexd(p - u_r[j].xy) - u_r[j].z); wj -= 100.0; }
         float bj = u_b[j];
         core = max(core, clamp(wj * 0.5 + 0.5 - dr, 0.0, 1.0) * bj);
-        glow = max(glow, exp(-dr / (3.0 + wj * 1.2)) * 0.5 * bj);
+        glow = max(glow, exp(-dr / (3.4 + wj * 1.3)) * 0.55 * bj);
+        glow += exp(-dr / (8.0 + wj * 1.5)) * 0.06 * bj;
     }
     float inside = 0.0;
     float edgeD = 1e5;
@@ -4065,6 +4067,8 @@ void main() {
     float gloss = exp(-pow((p.y - cy + 8.0) / 9.0, 2.0)) * 0.05 + exp(-pow((p.y - cy - 4.0) / 24.0, 2.0)) * 0.06;
     float haze = exp(-pow(length((p - u_r[0].xy) / vec2(2.2, 1.0)) / 34.0, 2.0)) * u_n.z;
     float bodyA = inside * (0.30 + gloss + haze * 0.45) + (1.0 - inside) * haze * 0.2;
+    vec2 ed = min(p, u_size - p);
+    glow *= smoothstep(0.0, 26.0, min(ed.x, ed.y));
     float a = clamp(core + glow + bodyA, 0.0, 1.0);
     vec3 green = mix(vec3(0.26, 0.86, 0.46), vec3(0.88, 1.0, 0.90), clamp(core - 0.25, 0.0, 1.0));
     vec3 bodyC = vec3(0.02, 0.16, 0.10);
