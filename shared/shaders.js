@@ -3595,31 +3595,50 @@ float h21(vec2 p) {
     return fract((p3.x + p3.y) * p3.z);
 }
 `;
-const STARS = `// A field of stars (GLSL ES 1.00): three sizes on a jittered grid, thinning out downwards. u_k: y where the sky starts to thin, y where it is gone,
-// y of the bright edge at the top. Straight alpha out.
+const STARS = `// A night sky (GLSL ES 1.00): stars of three sizes and a few colours on a jittered grid, thinning out downwards, soft out-of-focus discs, a faint
+// blue haze and a bright edge with its bloom along the top. u_k: y where the sky starts to thin, y where it is gone, y of the bright edge at the top.
 ` + FX_COMMON + `uniform vec4 u_k;
-float star(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
+vec4 star(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
     vec2 g = floor(p / cell);
     vec2 f = p / cell - g;
-    float r = h21(g + seed);
-    if (r < thr) return 0.0;
+    if (h21(g + seed) < thr) return vec4(0.0);
     vec2 c = vec2(h21(g + seed + 3.1), h21(g + seed + 7.7)) * 0.7 + 0.15;
     float d = length((f - c) * cell);
     float b = h21(g + seed + 11.3);
     float rad = rmin + b * (rmax - rmin);
     float core = 1.0 - smoothstep(0.0, rad, d);
-    return (core * core * (3.0 - 2.0 * core) + exp(-d * d / (rad * rad * 7.0)) * 0.22 * step(2.0, rad)) * (0.35 + 0.65 * b);
+    float I = (core * core * (3.0 - 2.0 * core) + exp(-d * d / (rad * rad * 7.0)) * 0.22 * step(2.0, rad)) * (0.35 + 0.65 * b);
+    vec3 cc = mix(vec3(0.74, 0.85, 1.0), vec3(1.0, 0.93, 0.82), h21(g + seed + 19.0));
+    return vec4(cc * I, I);
+}
+float bokeh(vec2 p, float cell, float seed, float thr, float rmin, float rmax) {
+    vec2 g = floor(p / cell);
+    vec2 f = p / cell - g;
+    if (h21(g + seed) < thr) return 0.0;
+    vec2 c = vec2(h21(g + seed + 3.1), h21(g + seed + 7.7)) * 0.5 + 0.25;
+    float d = length((f - c) * cell);
+    float rad = rmin + h21(g + seed + 5.0) * (rmax - rmin);
+    float disc = 1.0 - smoothstep(rad - 1.5, rad, d);
+    float rim = exp(-pow((d - rad) / 1.2, 2.0)) * 0.6;
+    return (disc * 0.5 + rim) * (0.05 + 0.07 * h21(g + seed + 9.0));
 }
 void main() {
     vec2 p = v_uv * u_size;
     float fall = 1.0 - smoothstep(u_k.x, u_k.y, p.y);
-    float a = star(p, 15.0, 1.0, 0.80, 0.9, 1.6) + star(p, 40.0, 5.0, 0.74, 1.2, 2.4) + star(p, 110.0, 9.0, 0.84, 2.2, 3.6);
-    a = clamp(a, 0.0, 1.0) * fall;
-    float e = exp(-pow((p.y - u_k.z) / 5.0, 2.0)) * (0.18 + 0.82 * exp(-pow((p.x - u_size.x * 0.5) / 340.0, 2.0)));
-    gl_FragColor = vec4(vec3(0.84, 0.89, 1.0), clamp(a + e * 0.7, 0.0, 1.0));
+    vec4 s = star(p, 15.0, 1.0, 0.80, 0.9, 1.6) + star(p, 40.0, 5.0, 0.74, 1.2, 2.4) + star(p, 110.0, 9.0, 0.84, 2.2, 3.6);
+    float sa = clamp(s.a, 0.0, 1.0) * fall;
+    vec3 sc = s.rgb / max(s.a, 0.001);
+    float bk = (bokeh(p, 130.0, 21.0, 0.80, 6.0, 13.0) + bokeh(p, 210.0, 33.0, 0.85, 10.0, 20.0)) * fall;
+    float dx = p.x - u_size.x * 0.5;
+    float hz = (0.035 * (0.55 + 0.45 * sin(p.x * 0.0037 + 1.3) * sin(p.y * 0.0061 + 0.7)) + 0.09 * exp(-pow(dx / 620.0, 2.0)) * exp(-p.y / 150.0)) * (1.0 - 0.6 * smoothstep(u_k.x, u_k.y, p.y));
+    float e = exp(-pow((p.y - u_k.z) / 2.2, 2.0)) * (0.30 + 0.70 * exp(-pow(dx / 340.0, 2.0)));
+    float bl = exp(-pow((p.y - u_k.z) / 16.0, 2.0)) * 0.26 * exp(-pow(dx / 520.0, 2.0));
+    vec3 pm = sc * sa + vec3(0.66, 0.78, 1.0) * bk + vec3(0.30, 0.44, 0.95) * hz + vec3(0.86, 0.91, 1.0) * (e + bl);
+    float al = clamp(sa + bk + hz + e + bl, 0.0, 1.0);
+    gl_FragColor = vec4(pm / max(sa + bk + hz + e + bl, 0.001), al);
 }`;
-const RINGFX = `// The ring round the speed (GLSL ES 1.00): a dark disc, a thin bright ring that flares at the top and bottom, a soft halo and faint ripples.
-// u_r: centre x, centre y, radius, strength of the dark disc. Straight alpha out.
+const RINGFX = `// The ring round the speed (GLSL ES 1.00): a dark disc with a faint blue rim glow, a thin bright ring that flares at the top and bottom, ripples
+// inside and out, a long streak across the bottom and a soft halo. u_r: centre x, centre y, radius, strength of the dark disc. Straight alpha out.
 ` + FX_COMMON + `uniform vec4 u_r;
 void main() {
     vec2 p = v_uv * u_size - u_r.xy;
@@ -3629,14 +3648,23 @@ void main() {
     float disc = (1.0 - smoothstep(R - 2.0, R, d)) * u_r.w;
     float t = exp(-pow((d - R) / 1.4, 2.0)) * (0.42 + 0.58 * bt);
     t += exp(-max(d - R, 0.0) / 9.0) * 0.16 * (0.4 + bt) * step(R, d);
+    t += exp(-max(R - d, 0.0) / 16.0) * 0.14 * step(d, R) * (0.5 + bt);
     t += exp(-pow((p.y - R * 0.97) / 2.2, 2.0)) * exp(-pow(p.x / (R * 0.55), 2.0));
     t += exp(-pow((p.y - R * 0.97) / 14.0, 2.0)) * exp(-pow(p.x / (R * 0.7), 2.0)) * 0.30;
+    t += exp(-pow((p.y - R * 0.99) / 1.2, 2.0)) * exp(-pow(p.x / (R * 1.45), 2.0)) * 0.40;
     t += exp(-pow((p.y + R * 0.97) / 2.0, 2.0)) * exp(-pow(p.x / (R * 0.45), 2.0)) * 0.55;
+    t += exp(-pow((p.y + R * 0.99) / 1.0, 2.0)) * exp(-pow(p.x / (R * 0.9), 2.0)) * 0.20;
     float dr = length(p - vec2(0.0, 5.0));
-    t += exp(-pow((dr - R * 0.86) / 3.0, 2.0)) * 0.10 + exp(-pow((dr - R * 0.74) / 3.0, 2.0)) * 0.07;
-    float lum = clamp(t, 0.0, 1.0);
+    t += exp(-pow((dr - R * 0.86) / 3.0, 2.0)) * 0.10 + exp(-pow((dr - R * 0.74) / 3.0, 2.0)) * 0.07 + exp(-pow((dr - R * 0.62) / 3.0, 2.0)) * 0.04;
+    float dd = length(p - vec2(0.0, -4.0));
+    t += exp(-pow((dd - R * 1.09) / 1.6, 2.0)) * 0.12 + exp(-pow((dd - R * 1.24) / 2.2, 2.0)) * 0.06;
+    t += exp(-max(d - R * 1.3, 0.0) / 34.0) * 0.05 * step(R, d);
+    vec2 q = v_uv * u_size;
+    float bf = smoothstep(0.0, 40.0, min(min(q.x, u_size.x - q.x), min(q.y, u_size.y - q.y)));
+    float lum = clamp(t * bf, 0.0, 1.0);
     float a = max(disc, lum);
-    gl_FragColor = vec4(vec3(0.80, 0.88, 1.0) * (lum / max(a, 0.001)), a);
+    vec3 bright = mix(vec3(0.62, 0.78, 1.0), vec3(0.88, 0.94, 1.0), clamp(lum * 1.4, 0.0, 1.0));
+    gl_FragColor = vec4(mix(vec3(0.004, 0.008, 0.022), bright, clamp(lum / max(a, 0.001), 0.0, 1.0)), a);
 }`;
 const RAILS = `// The two thin rails that run into the ring, for both sides at once (GLSL ES 1.00): four segments in the left side's coordinates (u_s0..3 = x0, y0,
 // x1, y1), drawn anti-aliased; the outer rail turns red towards the edge (u_r: red reach in px, the rail's width). Straight alpha out.
@@ -3666,8 +3694,8 @@ void main() {
     float a = max(outer, flo);
     gl_FragColor = vec4(col, a);
 }`;
-const BEAM = `// A curtain of light that follows the revs (GLSL ES 1.00): a vertical edge, a wedge of drifting dust between the upper rail and a bright floor
-// that runs down to the ring, and a faint haze over the rail. Drawn for the left side; u_c.y = 1 mirrors it for the right one.
+const BEAM = `// A curtain of light that follows the revs (GLSL ES 1.00): a vertical streak at its edge, a luminous cloud of drifting dust between a soft ceiling
+// and a bright floor that runs down to the ring, and a faint haze above. Drawn for the left side; u_c.y = 1 mirrors it for the right one.
 // u_a: edge x, rail y, edge top y, edge bottom y. u_b: floor from (x0, y0) to (x1, y1). u_c: x where the red tint starts (the 7), mirror, tip x,
 // x where it is fully red (the 8): the curtain turns violet and then red over that stretch, as it reaches towards the 8.
 ` + FX_COMMON + `uniform vec4 u_a;
@@ -3681,36 +3709,49 @@ float dust(vec2 p, float cell, float seed, float thr, float rad) {
     float d = length((f - c) * cell);
     return (1.0 - smoothstep(0.0, rad, d)) * (0.4 + 0.6 * h21(g + seed + 1.3));
 }
+float vn(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p) {
+    return vn(p) * 0.55 + vn(p * 2.03 + 7.1) * 0.30 + vn(p * 4.1 + 3.7) * 0.15;
+}
 void main() {
     vec2 p = v_uv * u_size;
     if (u_c.y > 0.5) p.x = u_size.x - p.x;
     float ex = u_a.x;
     float yf = min(mix(u_b.y, u_b.w, (p.x - u_b.x) / (u_b.z - u_b.x)), u_a.w);
     float yfe = min(mix(u_b.y, u_b.w, (ex - u_b.x) / (u_b.z - u_b.x)), u_a.w);
-    float inx = step(ex, p.x) * (1.0 - smoothstep(u_c.z - 30.0, u_c.z, p.x));
+    float inx = step(ex, p.x) * (1.0 - smoothstep(u_c.z - 40.0, u_c.z, p.x));
     float t = clamp((p.x - ex) / max(u_c.z - ex, 1.0), 0.0, 1.0);
-    float top = smoothstep(u_a.y - 4.0, u_a.y + 22.0, p.y);
-    float low = 1.0 - smoothstep(yf, yf + 3.0, p.y);
+    float cloud = smoothstep(0.30, 0.78, fbm(p * vec2(0.020, 0.034) + 3.0));
+    float cloud2 = fbm(p * 0.07 + 11.0);
+    float top = smoothstep(u_a.y - 44.0, u_a.y + 30.0, p.y);
+    float low = 1.0 - smoothstep(yf, yf + 2.5, p.y);
     float wedge = inx * top * low;
-    float g1 = exp(-max(yf - p.y, 0.0) / 24.0);
-    float g2 = exp(-(p.x - ex) / 24.0);
-    float a = wedge * (0.07 + 0.80 * g1 + 0.22 * g2) * (1.0 - 0.5 * t);
-    a += inx * step(u_a.y, p.y) * step(yf, p.y) * exp(-(p.y - yf) / 7.0) * 0.30 * (1.0 - 0.6 * t);
-    a += wedge * (dust(p, 5.0, 31.0, 0.55, 1.5) + dust(p, 9.0, 57.0, 0.70, 1.9)) * (0.30 + 1.1 * g1 + 0.6 * g2);
-    a += inx * (exp(-pow((p.y - yf) / 1.3, 2.0)) * 0.95 + exp(-pow((p.y - yf) / 5.0, 2.0)) * 0.35) * step(u_a.y, p.y) * (1.0 - 0.6 * t);
+    float g1 = exp(-max(yf - p.y, 0.0) / (28.0 + 20.0 * cloud));
+    float g2 = exp(-(p.x - ex) / 26.0);
+    float a = wedge * (0.04 + 0.62 * g1 * (0.5 + cloud) + 0.20 * g2 * (0.6 + 0.6 * cloud2)) * (1.0 - 0.45 * t);
+    a += inx * step(u_a.y, p.y) * step(yf, p.y) * exp(-(p.y - yf) / 9.0) * 0.30 * (1.0 - 0.6 * t);
+    float du = dust(p, 4.0, 31.0, 0.45, 1.1) * 0.9 + dust(p, 8.0, 57.0, 0.62, 1.7) + dust(p, 22.0, 83.0, 0.80, 4.5) * 0.35;
+    a += wedge * du * (0.22 + 1.2 * g1 + 0.5 * g2) * (0.6 + 0.8 * cloud);
+    a += inx * (exp(-pow((p.y - yf) / 1.3, 2.0)) * 0.95 + exp(-pow((p.y - yf) / 5.0, 2.0)) * 0.35) * step(u_a.y, p.y) * (1.0 - 0.55 * t);
     float ey = ex + 0.03 * (p.y - u_a.z);
-    float ev = smoothstep(u_a.z, u_a.z + 90.0, p.y) * (1.0 - smoothstep(yfe - 12.0, yfe + 2.0, p.y));
-    a += ev * (exp(-pow((p.x - ey) / 1.4, 2.0)) * 0.9 + exp(-pow((p.x - ey) / 8.0, 2.0)) * 0.22);
-    float hz = step(ex, p.x) * (1.0 - smoothstep(0.0, 170.0, p.x - ex)) * smoothstep(u_a.z, u_a.y, p.y) * (1.0 - smoothstep(u_a.y - 4.0, u_a.y, p.y));
-    a += hz * 0.16;
-    a = clamp(a, 0.0, 1.0);
+    float ev = smoothstep(u_a.z - 40.0, u_a.z + 120.0, p.y) * (1.0 - smoothstep(yfe - 12.0, yfe + 2.0, p.y));
+    a += ev * (exp(-pow((p.x - ey) / 1.4, 2.0)) * 0.9 + exp(-pow((p.x - ey) / 8.0, 2.0)) * 0.22 + exp(-pow((p.x - ey) / 26.0, 2.0)) * 0.05);
+    float hz = step(ex, p.x) * (1.0 - smoothstep(0.0, 190.0, p.x - ex)) * smoothstep(u_a.z - 40.0, u_a.y, p.y) * (1.0 - smoothstep(u_a.y - 4.0, u_a.y + 16.0, p.y));
+    a += hz * 0.16 * (0.5 + cloud2);
     float k = 1.0 - smoothstep(u_c.w + (u_c.x - u_c.w) * 0.35, u_c.x, p.x);
     float kE = 1.0 - smoothstep(u_c.w + (u_c.x - u_c.w) * 0.35, u_c.x, ex);
-    a += wedge * k * (0.10 + 0.50 * g1);
-    float lh = step(p.x, ex) * exp(-(ex - p.x) / 30.0) * smoothstep(u_a.z, u_a.z + 60.0, p.y) * (1.0 - smoothstep(yfe - 6.0, yfe + 10.0, p.y));
-    a += kE * lh * 0.42;
+    a += wedge * k * (0.10 + 0.50 * g1) * (0.6 + 0.8 * cloud);
+    float lh = step(p.x, ex) * exp(-(ex - p.x) / 44.0) * smoothstep(u_a.z + 40.0, u_a.z + 230.0, p.y) * (1.0 - smoothstep(yfe - 6.0, yfe + 10.0, p.y));
+    a += kE * lh * 0.50 * (0.7 + 0.6 * cloud2);
     a = clamp(a * (1.0 + 1.6 * k), 0.0, 1.0);
-    vec3 col = mix(vec3(0.80, 0.89, 1.0), mix(vec3(0.66, 0.46, 1.0), vec3(1.0, 0.16, 0.22), smoothstep(0.25, 0.9, k)), smoothstep(0.0, 0.45, k));
+    vec3 base = mix(vec3(0.60, 0.78, 1.0), vec3(0.90, 0.95, 1.0), clamp(g1 + g2 * 0.5, 0.0, 1.0));
+    base = mix(base, vec3(0.74, 0.70, 1.0), cloud2 * 0.25 * (1.0 - g1));
+    vec3 col = mix(base, mix(vec3(0.66, 0.46, 1.0), vec3(1.0, 0.16, 0.22), smoothstep(0.25, 0.9, k)), smoothstep(0.0, 0.45, k));
     col = mix(col, vec3(1.0), (1.0 - k) * clamp(a - 0.5, 0.0, 0.5));
     gl_FragColor = vec4(col, a);
 }`;

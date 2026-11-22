@@ -42,13 +42,14 @@ W.append({'id': 'rails', 'type': 'rails', 'class': 'content', 'z': 2, 'x': 0, 'y
 # ---- the ring in the middle
 RC = C(1000, 340)
 RR = 123
-W.append({'id': 'ring', 'type': 'ringfx', 'class': 'content', 'z': 2, 'x': 790, 'y': round(RC[1] - RR - 50), 'w': 340, 'h': RR * 2 + 100, 'conn': 2, 'ring': [960, RC[1], RR, 0.93]})
+RB = 520
+W.append({'id': 'ring', 'type': 'ringfx', 'class': 'content', 'z': 2, 'x': 960 - RB // 2, 'y': round(RC[1] - RR - 70), 'w': RB, 'h': RR * 2 + 170, 'conn': 2, 'ring': [960, RC[1], RR, 0.93]})
 # ---- the two light curtains (left frame coordinates; the right one is mirrored)
 RAIL = C(0, 401)[1]
-EDGE_TOP, EDGE_BOT = C(0, 275)[1], RAIL + 84               # the curtain's edge ends on the floor rail, but the curtain is never thicker than this
+EDGE_TOP, EDGE_BOT = C(0, 275)[1], 640                      # the curtain's edge ends on the floor rail, which slopes down towards the sides; never below this
 FLOOR = [C(606, 481)[0], C(606, 481)[1], C(822, 403)[0], C(822, 403)[1]]
 BY0 = round(EDGE_TOP - 18)
-BH = round(EDGE_BOT + 14 - BY0)
+BH = 660 - BY0
 SCALE_L = [(0, C(732, 0)[0]), (1, C(667, 0)[0]), (2, C(594, 0)[0]), (3, C(516, 0)[0]), (4, C(443, 0)[0]), (5, C(362, 0)[0]), (6, C(272, 0)[0]), (7, C(180, 0)[0]), (8, C(88, 0)[0])]
 beam = {'type': 'beam', 'class': 'content', 'z': 3, 'y': BY0, 'w': 800, 'h': BH, 'conn': 2, 'rail': RAIL, 'edge': [EDGE_TOP, EDGE_BOT], 'floor': FLOOR, 'tip': C(822, 0)[0],
         'marks': [[v, x] for v, x in SCALE_L], 'red': [SCALE_L[7][1] + 14, SCALE_L[8][1] - 8]}
