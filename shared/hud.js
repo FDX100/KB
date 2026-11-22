@@ -99,7 +99,7 @@
  *   wgauge    effect layer; a small white gauge with a scale arc, ticks, coloured blocks and a red needle (shaders.js WGAUGE, the E46 theme): "pivot", "arc", "ticks",
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
- *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red }, "signal", "min", "max" ({ metric, us })
+ *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red, shine (1) }, "signal", "min", "max" ({ metric, us }); the face turns dim amber at night (nightDim Auto, after sunset)
  *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
@@ -1510,6 +1510,7 @@ class HudApp {
     /** Night colours now: Cluster Themes' "nightDim" on Auto, a theme of the layout's own, and the sun down. */
     _nightDim() {
         if (!this.ctx.settings.item('nightDim') || this.setting('nightDim') !== 'auto' || !this.layoutTheme) return false;
+        if (process.env.KB_NIGHT) return true;        // the bench: KB_NIGHT=1 shows the night colours
         return sun.isNight(Date.now(), ...this._sunPlace());
     }
 
@@ -2198,7 +2199,7 @@ class HudApp {
         this.hudHoliday = this._hudHoliday();      // the HUD's holiday colours (hud_holiday.js), null for none
         if (this.hudHoliday) this.theme = hudHoliday.theme(this.theme, this.hudHoliday);
         this.nightOn = this._nightDim();
-        if (this.nightOn) this.theme = dimTheme(this.theme, NIGHT_DIM);
+        if (this.nightOn) { this.theme = dimTheme(this.theme, NIGHT_DIM); if (this.theme.night) Object.assign(this.theme, this.theme.night); }      // a theme's "night": colours that replace its own at night (backlit numerals)
         this.log.info('layout "' + layout.name + '", theme ' + this.theme.name + (this.layoutTheme ? '' : ' (' + this.setting('hudTheme') + ')'));
         // full screen (Nov 14 2026): the layout's strip widgets (design/genlib.py full_screen) cover BMW's strip except a
         // window over its gear letter, and the theme's own strip row ("stripRow" l / r) shows the clock, range and outside
@@ -2888,6 +2889,7 @@ class HudApp {
             c.uniform(ref, 'u_s', [d.start, d.sweep, 0, d.red === undefined ? 2 : d.red]);
             c.uniform(ref, 'u_b', [d.band[0], d.band[1], d.band[2], d.minors]);
             c.uniform(ref, 'u_m', [d.majorEvery || 2, d.hot === undefined ? 0 : d.hot, 0, 0]);
+            c.uniform(ref, 'u_n', [this.nightOn ? 1 : 0, d.shine === undefined ? 1 : d.shine, 0, 0]);       // night (nightDim on Auto, after sunset): a dimmer amber face
         } else if (w.type === 'dewdrops') {
             // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes to travel, wobble, 1: outwards from the speed (0: inwards)], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);

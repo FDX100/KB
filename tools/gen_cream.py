@@ -41,8 +41,8 @@ def lamp_text(i, lamp, t, x, y, w, font, lit, dim):
     return {'id': i, 'type': 'lamp', 'lamp': lamp, 'text': t, 'font': font, 'z': 5, 'x': round(x - w / 2), 'y': round(y - h / 2), 'w': w, 'h': h, 'align': 'center', 'color': lit, 'dim': dim}
 
 
-INK = [58, 56, 46, 255]
-INK_D = [38, 37, 30, 255]
+INK = 'fg'                                  # the theme's dark ink by day, backlit amber at night (hud_themes.js cream.night)
+INK_D = 'big'
 GREEN = [44, 210, 70, 255]
 GHOST = [64, 64, 58, 255]
 W = [{'id': 'bg', 'type': 'fill', 'class': 'content', 'z': 0, 'x': 0, 'y': 0, 'w': 1920, 'h': 720, 'color': 'bg'}]
@@ -113,7 +113,7 @@ for i, (nm, x, y) in enumerate((('beam_a', 727, 690), ('beam_b', 727, 735))):
     W.append(lamp_icon(nm, 'lights', 'beam', X(x), Y(y), 44, GHOST, [46, 46, 42, 255]))
 for i, (nm, x, y) in enumerate((('fog_a', 873, 690), ('fog_b', 873, 735))):
     W.append(lamp_icon(nm, 'lights', 'beamr', X(x), Y(y), 44, GHOST, [46, 46, 42, 255]))
-LCD = {'id': 'lcd', 'type': 'fill', 'class': 'content', 'z': 2, 'x': round(X(687)), 'y': round(Y(866)), 'w': round(X(913) - X(687)), 'h': round(Y(940) - Y(866)), 'color': [206, 210, 190, 255]}
+LCD = {'id': 'lcd', 'type': 'fill', 'class': 'content', 'z': 2, 'x': round(X(687)), 'y': round(Y(866)), 'w': round(X(913) - X(687)), 'h': round(Y(940) - Y(866)), 'color': 'lcd'}
 W.append(LCD)
 W.append(text('lcd_trip', X(706), Y(910), 60, 'cr_lab', 'TRIP', [40, 40, 34, 255], 'left'))
 W.append(text('lcd_odo', X(706), Y(927), 60, 'cr_lab', 'RANGE', [40, 40, 34, 255], 'left'))

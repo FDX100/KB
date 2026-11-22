@@ -93,12 +93,7 @@
       "h": 84,
       "text": "0",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -113.0,
       "vcenter": true
@@ -113,12 +108,7 @@
       "h": 84,
       "text": "10",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -84.8,
       "vcenter": true
@@ -133,12 +123,7 @@
       "h": 84,
       "text": "20",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -56.5,
       "vcenter": true
@@ -153,12 +138,7 @@
       "h": 84,
       "text": "30",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -28.2,
       "vcenter": true
@@ -173,12 +153,7 @@
       "h": 84,
       "text": "40",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 0.0,
       "vcenter": true
@@ -193,12 +168,7 @@
       "h": 84,
       "text": "50",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 28.2,
       "vcenter": true
@@ -213,12 +183,7 @@
       "h": 84,
       "text": "60",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 56.5,
       "vcenter": true
@@ -233,12 +198,7 @@
       "h": 84,
       "text": "70",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 84.8,
       "vcenter": true
@@ -253,12 +213,7 @@
       "h": 84,
       "text": "80",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 113.0,
       "vcenter": true
@@ -273,12 +228,7 @@
       "h": 84,
       "text": "0",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -113.0,
       "vcenter": true,
@@ -294,12 +244,7 @@
       "h": 84,
       "text": "20",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -94.2,
       "vcenter": true,
@@ -315,12 +260,7 @@
       "h": 84,
       "text": "40",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -75.3,
       "vcenter": true,
@@ -336,12 +276,7 @@
       "h": 84,
       "text": "60",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -56.5,
       "vcenter": true,
@@ -357,12 +292,7 @@
       "h": 84,
       "text": "80",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -37.7,
       "vcenter": true,
@@ -378,12 +308,7 @@
       "h": 84,
       "text": "100",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -18.8,
       "vcenter": true,
@@ -399,12 +324,7 @@
       "h": 84,
       "text": "120",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 0.0,
       "vcenter": true,
@@ -420,12 +340,7 @@
       "h": 84,
       "text": "140",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 18.8,
       "vcenter": true,
@@ -441,12 +356,7 @@
       "h": 84,
       "text": "160",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 37.7,
       "vcenter": true,
@@ -462,12 +372,7 @@
       "h": 84,
       "text": "180",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 56.5,
       "vcenter": true,
@@ -483,12 +388,7 @@
       "h": 84,
       "text": "200",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 75.3,
       "vcenter": true,
@@ -504,12 +404,7 @@
       "h": 84,
       "text": "220",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 94.2,
       "vcenter": true,
@@ -525,12 +420,7 @@
       "h": 84,
       "text": "240",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 113.0,
       "vcenter": true,
@@ -546,12 +436,7 @@
       "h": 84,
       "text": "0",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -113.0,
       "vcenter": true,
@@ -567,12 +452,7 @@
       "h": 84,
       "text": "20",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -84.8,
       "vcenter": true,
@@ -588,12 +468,7 @@
       "h": 84,
       "text": "40",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -56.5,
       "vcenter": true,
@@ -609,12 +484,7 @@
       "h": 84,
       "text": "60",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": -28.2,
       "vcenter": true,
@@ -630,12 +500,7 @@
       "h": 84,
       "text": "80",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 0.0,
       "vcenter": true,
@@ -651,12 +516,7 @@
       "h": 84,
       "text": "100",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 28.2,
       "vcenter": true,
@@ -672,12 +532,7 @@
       "h": 84,
       "text": "120",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 56.5,
       "vcenter": true,
@@ -693,12 +548,7 @@
       "h": 84,
       "text": "140",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 84.8,
       "vcenter": true,
@@ -714,12 +564,7 @@
       "h": 84,
       "text": "160",
       "font": "cr_num",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center",
       "angle": 113.0,
       "vcenter": true,
@@ -735,12 +580,7 @@
       "h": 30,
       "text": "ENGINE",
       "font": "cr_mid",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -753,12 +593,7 @@
       "h": 99,
       "text": "{{rpmH}}",
       "font": "cr_big",
-      "color": [
-        38,
-        37,
-        30,
-        255
-      ],
+      "color": "big",
       "align": "center"
     },
     {
@@ -771,12 +606,7 @@
       "h": 30,
       "text": "RPM",
       "font": "cr_mid",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -789,12 +619,7 @@
       "h": 18,
       "text": "X100",
       "font": "cr_lab",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -807,12 +632,7 @@
       "h": 30,
       "text": "SPEED",
       "font": "cr_mid",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -825,12 +645,7 @@
       "h": 99,
       "text": "{{speed}}",
       "font": "cr_big",
-      "color": [
-        38,
-        37,
-        30,
-        255
-      ],
+      "color": "big",
       "align": "center"
     },
     {
@@ -843,12 +658,7 @@
       "h": 30,
       "text": "{{u:speedKph}}",
       "font": "cr_mid",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -924,12 +734,7 @@
       "y": 130,
       "w": 42,
       "h": 42,
-      "color": [
-        38,
-        37,
-        30,
-        255
-      ]
+      "color": "big"
     },
     {
       "id": "pump",
@@ -940,12 +745,7 @@
       "y": 131,
       "w": 40,
       "h": 40,
-      "color": [
-        38,
-        37,
-        30,
-        255
-      ]
+      "color": "big"
     },
     {
       "id": "lbl_h",
@@ -957,12 +757,7 @@
       "h": 18,
       "text": "H",
       "font": "cr_lab",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -975,12 +770,7 @@
       "h": 18,
       "text": "C",
       "font": "cr_lab",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -993,12 +783,7 @@
       "h": 18,
       "text": "F",
       "font": "cr_lab",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -1011,12 +796,7 @@
       "h": 18,
       "text": "E",
       "font": "cr_lab",
-      "color": [
-        58,
-        56,
-        46,
-        255
-      ],
+      "color": "fg",
       "align": "center"
     },
     {
@@ -1382,12 +1162,7 @@
       "y": 592,
       "w": 316,
       "h": 104,
-      "color": [
-        206,
-        210,
-        190,
-        255
-      ]
+      "color": "lcd"
     },
     {
       "id": "lcd_trip",

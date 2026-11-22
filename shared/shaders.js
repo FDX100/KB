@@ -3860,11 +3860,13 @@ void main() {
 // ---- the Cream theme (layouts/cream.json): cream-faced dials like an old instrument cluster
 const CREAMDIAL = `// A cream instrument dial (GLSL ES 1.00): an aged cream face with a dark bezel, a ticked band along an arc, a black fill that follows the value and a red
 // zone. u_c: centre x, y (layer px), face radius, how aged the face is (0..1). u_s: start (degrees clockwise from up), sweep, value 0..1, where the red zone
-// starts (0..1, 2 = none). u_b: band in, band out, fill out (fractions of the radius), minor tick intervals. u_m: minors per major tick. Straight alpha out.
+// starts (0..1, 2 = none). u_b: band in, band out, fill out (fractions of the radius), minor tick intervals. u_m: minors per major tick, 0.. u_n.x: night
+// (0 day, 1 night: the face dims and turns amber, like a backlit dial), u_n.y: glass shine (0..1). Straight alpha out.
 ` + FX_COMMON + `uniform vec4 u_c;
 uniform vec4 u_s;
 uniform vec4 u_b;
 uniform vec4 u_m;
+uniform vec4 u_n;
 float ln(float d, float w) { return clamp(w * 0.5 + 0.5 - abs(d), 0.0, 1.0); }
 void main() {
     vec2 p = v_uv * u_size - u_c.xy;
@@ -3885,6 +3887,13 @@ void main() {
     vec3 cream = mix(vec3(0.86, 0.87, 0.68), vec3(0.64, 0.63, 0.42), smoothstep(0.30, 1.0, u));
     cream -= vec3(0.05, 0.05, 0.07) * u_c.w * (0.35 + 0.65 * h21(floor(p * 0.5)));
     cream += vec3(0.07) * exp(-dot(p / R - vec2(-0.30, -0.45), p / R - vec2(-0.30, -0.45)) / 0.22);
+    // the glass: a broad curved highlight over the top of the face and a small glint low on the right
+    vec2 q = p / R;
+    float gcurve = -0.22 + 0.34 * q.x * q.x;
+    float shine = smoothstep(gcurve + 0.02, gcurve - 0.30, q.y) * smoothstep(0.97, 0.84, u) * (1.0 - smoothstep(-0.95, -0.05, q.y) * 0.0);
+    shine *= smoothstep(-0.98, -0.55, q.y) * 0.9 + 0.1;
+    float glint = exp(-dot(q - vec2(0.55, 0.62), (q - vec2(0.55, 0.62)) * vec2(1.0, 3.0)) / 0.05) * 0.5;
+    cream = mix(cream, vec3(1.0, 1.0, 0.92), clamp(shine * 0.34 + glint * 0.14, 0.0, 1.0) * u_n.y);
     float faceA = 1.0 - smoothstep(1.0 - aa, 1.0, u);
     vec3 col = cream;
     float a = faceA;
@@ -3895,16 +3904,17 @@ void main() {
     vec3 bc = mix(vec3(0.045, 0.047, 0.04), vec3(0.34, 0.33, 0.22), pow(lit, 3.0) * smoothstep(1.0, 1.0 + bz * 0.6, u) * (1.0 - smoothstep(1.0 + bz * 0.6, 1.0 + bz, u)));
     col = mix(col, bc, bez);
     a = max(faceA, bez);
+    col *= mix(vec3(1.0), vec3(0.30, 0.19, 0.08), u_n.x * faceA);
     // the band
     float bi = u_b.x, bo = u_b.y;
     float inBand = step(bi, u) * step(u, bo) * inSc;
     float red = step(u_s.w, f) * step(u_s.w, 1.5);
-    vec3 ink = vec3(0.15, 0.14, 0.12);
+    vec3 ink = mix(vec3(0.15, 0.14, 0.12), vec3(1.0, 0.70, 0.34), u_n.x);
     float redA = red * inBand * 0.92;
     col = mix(col, vec3(0.79, 0.12, 0.14), redA);
     float fillA = step(bi, u) * step(u, u_b.z) * step(f, u_s.z) * inSc;
     fillA *= smoothstep(0.0, aa * 2.0, u - bi + aa) * smoothstep(0.0, aa * 2.0, u_b.z - u + aa);
-    col = mix(col, vec3(0.1), fillA * 0.95);
+    col = mix(col, mix(vec3(0.1), vec3(1.0, 0.72, 0.34), u_n.x), fillA * 0.95);
     float step_deg = sw / u_b.w;
     float dmin = abs(fract(rel / step_deg + 0.5) - 0.5) * step_deg * 0.0174533 * r;
     float k = floor(rel / step_deg + 0.5);
@@ -3914,8 +3924,8 @@ void main() {
     float ringL = max(max(ln((u - bi) * R, 1.3), ln((u - bo) * R, 1.3)), ln((u - (bi + bo) * 0.5) * R, 0.7) * 0.7);
     ringL *= inSc * step(-0.001, f);
     float lines = max(tick, ringL);
-    vec3 lc = mix(ink, vec3(0.30, 0.04, 0.05), red * inBand);
-    col = mix(col, lc, clamp(lines, 0.0, 1.0) * 0.92 * (1.0 - fillA * 0.9));
+    vec3 lc = mix(ink, mix(vec3(0.30, 0.04, 0.05), vec3(1.0, 0.45, 0.35), u_n.x), red * inBand);
+    col = mix(col, lc, clamp(lines, 0.0, 1.0) * mix(0.92, 0.75, u_n.x) * (1.0 - fillA * 0.9));
     gl_FragColor = vec4(col, a);
 }`;
 
