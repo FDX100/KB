@@ -134,6 +134,14 @@ CLUSTER_FONTS = [
     ('sl_n2', 'BarlowCondensed-SemiBold.ttf', 52, DIGITS),
     ('sl_n3', 'BarlowCondensed-SemiBold.ttf', 43, DIGITS),
     ('sl_n4', 'BarlowCondensed-SemiBold.ttf', 35, DIGITS),
+    # Dewdrop (after the Bentley concept cluster): light geometric Outfit, thin big numbers
+    ('bd_speed', 'Outfit[wght].ttf', 110, DIGITS, 0, 'ExtraLight', None, '', 0.82),
+    ('bd_rpm', 'Outfit[wght].ttf', 92, DIGITS, 0, 'ExtraLight', None, '', 0.82),
+    ('bd_num', 'Outfit[wght].ttf', 40, DIGITS + '.,-', 0, 'Light'),
+    ('bd_title', 'Outfit[wght].ttf', 31, ''.join(chr(i) for i in range(32, 127)), 0, 'Medium'),
+    ('bd_sub', 'Outfit[wght].ttf', 23, ''.join(chr(i) for i in range(32, 127)) + '°', 0, 'Regular'),
+    ('bd_lab', 'Outfit[wght].ttf', 20, UPPER + DIGITS + ' .:/%°-', 0, 'Regular'),
+    ('bd_gear', 'Outfit[wght].ttf', 38, 'PRND0123456789', 0, 'Regular'),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)

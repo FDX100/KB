@@ -43,6 +43,8 @@ const TYPES = {
     ringfx: ['ring'],
     beam: ['marks'],
     rails: ['segs'],
+    dewdrops: ['drops'],
+    slant: ['line'],
     gaugemask: ['art', 'art2', 'signal'],
     pneedle: ['signal', 'marks'],
     segarc: ['center', 'radii', 'tick', 'zones', 'angles'],

@@ -32,6 +32,7 @@ Made by <a href="https://github.com/FDX100">FDX100</a>.
 <tr><td align="center" width="50%"><img src="docs/themes/luxe.png" width="440" alt="Luxe"><br><b>Luxe</b><br>Classic and luxurious e-drive: gold-bezel dials, a POWER dial with a CHARGE sector, an analog clock, and a charging view with kW, battery and time to full.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/arcd.png" width="440" alt="Arc Digital"><br><b>Arc Digital</b><br>After a digital sports-car cluster: a half-circle rev bar of slats (green, yellow, red), seven-segment speed, coolant and fuel bars, and lamps that light with what the car does.</td></tr>
 <tr><td align="center" width="50%"><img src="docs/themes/starlight.png" width="440" alt="Starlight"><br><b>Starlight</b><br>After a luxury electric car's concept cluster: a night sky of stars, a glowing ring with a tall thin speed, the revs as two fans of numbers, and curtains of light that slide out along them and turn red near the redline.</td><td align="center" width="50%"></td></tr>
+<tr><td align="center" width="50%"><img src="docs/themes/dewdrop.png" width="440" alt="Dewdrop"><br><b>Dewdrop</b><br>After a luxury electric car's concept cluster: rings of water drops round a thin speed (the outer ring lights up with the revs), a slanted glass panel, a power arc, the weather and clock, the music that is playing, power in kW and revs.</td><td align="center" width="50%"></td></tr>
 </table>
 
 Pictures are bench screenshots of the cluster area, not photos from a car.

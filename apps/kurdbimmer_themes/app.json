@@ -2,7 +2,7 @@
   "id": "kurdbimmer_themes",
   "title": "KurdBimmer Themes",
   "description": "Eighteen full-screen cluster themes with a Kurdish (Sorani) interface. By FDX100. Needs cluster-render.",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "vendor": "custom",
   "loggingId": "OAC1",
   "iconGlyph": "kurd",
@@ -202,6 +202,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },
@@ -296,6 +300,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },
@@ -384,6 +392,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },
@@ -472,6 +484,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },
@@ -564,6 +580,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },
@@ -656,6 +676,10 @@
         [
           "starlight",
           "Starlight"
+        ],
+        [
+          "dewdrop",
+          "Dewdrop"
         ]
       ]
     },

@@ -220,6 +220,16 @@ const THEMES = {
         bg: [0, 0, 2, 255], panel: [12, 14, 22, 255], line: [150, 160, 190, 255], head: [200, 224, 255, 255],
         ink: [10, 10, 14, 255], accent: [200, 224, 255, 255], well: [0, 0, 2, 255],
     },
+    // Dewdrop (layout dewdrop.json): black and graphite glass, water drops, ice-blue light.
+    dewdrop: {
+        name: 'Dewdrop',
+        fg: [244, 246, 250, 255], dim: [100, 106, 122, 255], track: [60, 66, 80, 255], arc: [168, 205, 255, 255],
+        glow: 0, stripe: false,
+        bar: { low: [168, 205, 255], mid: [236, 214, 160], high: [236, 62, 52], midAt: 'shift' },
+        rev: { from: [168, 205, 255], to: [236, 62, 52] },
+        bg: [0, 0, 0, 255], panel: [30, 34, 44, 255], line: [110, 120, 140, 255], head: [168, 205, 255, 255],
+        ink: [10, 10, 14, 255], accent: [168, 205, 255, 255], well: [0, 0, 0, 255],
+    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });

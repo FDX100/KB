@@ -3764,4 +3764,84 @@ void main() {
     gl_FragColor = vec4(col, a);
 }`;
 
-module.exports = { stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+// ---- the Dewdrop theme (layouts/dewdrop.json): rings of water drops round the speed, and a slanted glass panel
+const DEWDROPS = `// Rings of water drops (GLSL ES 1.00): every drop a little lens with a bright rim, a specular point and a caustic on the far side, in rings round the
+// middle. u_c: centre x, centre y (layer px), the revs 0..1, seconds. u_ring[4]: radius, number of drops, drop radius, wobble. The drops of the outer ring
+// light up clockwise with the revs (cool white, then red near the redline). Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_c;
+uniform vec4 u_ring[4];
+vec4 drop(vec2 p, vec2 c, float r, float lit, float seed) {
+    vec2 q = (p - c) / r;
+    float d = length(q);
+    if (d > 1.12) return vec4(0.0);
+    float inside = 1.0 - smoothstep(0.93, 1.0, d);
+    vec2 n = q / max(d, 0.001);
+    float rimW = smoothstep(0.80, 0.97, d) * (1.0 - smoothstep(0.985, 1.04, d));
+    float lightA = pow(max(dot(n, normalize(vec2(-0.6, -0.75))), 0.0), 2.0);
+    float lightB = pow(max(dot(n, normalize(vec2(0.55, 0.8))), 0.0), 3.0);
+    float rim = rimW * (0.22 + 1.0 * lightA + 0.8 * lightB);
+    float spec = exp(-dot(q - vec2(-0.38, -0.44), q - vec2(-0.38, -0.44)) / 0.010) * 1.0 + exp(-dot(q - vec2(-0.2, -0.56), q - vec2(-0.2, -0.56)) / 0.006) * 0.5;
+    float caus = (exp(-dot(q - vec2(0.30, 0.40), q - vec2(0.30, 0.40)) / 0.045) * 0.65 + smoothstep(0.55, 0.85, d) * lightB * 0.25) * inside;
+    float body = inside * (0.16 + 0.10 * d * d);
+    vec3 base = vec3(0.12, 0.22, 0.36);
+    vec3 col = base * body + vec3(0.78, 0.88, 1.0) * (rim + caus * 0.7) + vec3(1.0) * spec;
+    col += lit * vec3(0.35, 0.55, 0.95) * (0.25 + rimW * 0.9) * inside;
+    float a = clamp(body + rim + caus + spec + lit * 0.4 * inside, 0.0, 1.0);
+    return vec4(col, a);
+}
+void main() {
+    vec2 p = v_uv * u_size;
+    vec2 rel = p - u_c.xy;
+    float rad = length(rel);
+    float ang = atan(rel.x, -rel.y);
+    float tw = u_c.w;
+    vec4 acc = vec4(0.0);
+    for (int k = 0; k < 4; k++) {
+        float R = u_ring[k].x;
+        float n = u_ring[k].y;
+        float rho = u_ring[k].z;
+        if (abs(rad - R) > rho * 1.7 + u_ring[k].w) continue;
+        float step_ = 6.2831853 / n;
+        float a0 = floor((ang + 3.14159265) / step_);
+        for (int j = -1; j <= 1; j++) {
+            float id = a0 + float(j);
+            float idw = mod(id, n);
+            float sd = float(k) * 17.0 + idw * 1.37;
+            float rr = rho * (0.70 + 0.38 * h21(vec2(sd, 4.0)));
+            float aa = (id + 0.5 + (h21(vec2(sd, 5.0)) - 0.5) * 0.45) * step_ - 3.14159265;
+            float rj = R + (h21(vec2(sd, 6.0)) - 0.5) * u_ring[k].w;
+            vec2 c = u_c.xy + rj * vec2(sin(aa), -cos(aa));
+            float lit = 0.0;
+            if (k == 0) {
+                float f = fract((aa + 2.356194) / 6.2831853);
+                lit = (1.0 - smoothstep(u_c.z * 0.75 - 0.01, u_c.z * 0.75 + 0.01, f)) * step(f, 0.75);
+            }
+            float sh = 0.82 + 0.18 * sin(tw * (0.6 + 1.4 * h21(vec2(sd, 7.0))) + 6.2831 * h21(vec2(sd, 8.0)));
+            vec4 dd = drop(p, c, rr, lit, sd);
+            dd.rgb *= sh;
+            if (dd.a > acc.a) acc = dd;
+        }
+    }
+    if (acc.a <= 0.0) { gl_FragColor = vec4(0.0); return; }
+    gl_FragColor = vec4(acc.rgb / max(acc.a, 0.001), acc.a);
+}`;
+const SLANT = `// A slanted glass panel (GLSL ES 1.00): everything to the right of the line (u_l: x0, y0, x1, y1 in layer px) is a dark grey glass that fades darker
+// downwards, with a thin bright edge along the line. u_f: fill colour (rgb) and strength, u_e: edge strength, soft width. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_l;
+uniform vec4 u_f;
+uniform vec4 u_e;
+void main() {
+    vec2 p = v_uv * u_size;
+    vec2 d = u_l.zw - u_l.xy;
+    vec2 n = normalize(vec2(d.y, -d.x));
+    float s = dot(p - u_l.xy, n);
+    float side = smoothstep(-0.5, 1.2, s);
+    float shade = 1.0 - 0.45 * (p.y / u_size.y);
+    float edge = exp(-pow(s / u_e.y, 2.0)) * u_e.x * (0.35 + 0.65 * (1.0 - p.y / u_size.y));
+    float a = side * u_f.a * shade;
+    float tot = clamp(a + edge, 0.0, 1.0);
+    vec3 col = (u_f.rgb * a + vec3(0.72, 0.80, 0.95) * edge) / max(a + edge, 0.001);
+    gl_FragColor = vec4(col, tot);
+}`;
+
+module.exports = { dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
