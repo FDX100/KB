@@ -102,7 +102,7 @@
  *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red, shine (1) }, "signal", "min", "max" ({ metric, us }); the face turns dim amber at night (nightDim Auto, after sunset)
  *   radar     effect layer; a radar-sweep rev gauge (shaders.js RADAR, the Radar theme): "radar" { center, radius }, "rpmMax" (10000); a load arc (powerPct) beyond the 7
  *   neonarc   effect layer; a big thin neon ellipse arc (NEONARC): "ellipse" { center, axes, half, core }
- *   neonlamp  effect layer; neon line drawings (NEONLAMP): "chains" [[[x, y, width, brightness (negative: amber)], ...], ...] (28 vertices in all), "rings" [[x, y, radius, width (100+: hexagon), brightness] x4], "fill" (8 corners), "haze" (0..1)
+ *   neonlamp  effect layer; neon line drawings (NEONLAMP): "chains" [[[x, y, width, brightness (negative: amber)], ...], ...] (28 vertices in all), "rings" [[x, y, radius, width (100+: hexagon), brightness] x4], "fill" (8 corners), "haze" (0..1), "fps" (6: how often the breathing glow steps)
  *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
@@ -2926,6 +2926,7 @@ class HudApp {
             while (fl.length < 8) fl.push([0, 0, 0, 0]);
             c.uniform(ref, 'u_f', fl.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
             c.uniform(ref, 'u_n', [nv, Math.min(4, (w.rings || []).length), w.haze || 0, nf]);
+            c.uniform(ref, 'u_t', [0]);
         } else if (w.type === 'dewdrops') {
             // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes to travel, wobble, 1: outwards from the speed (0: inwards)], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -3975,6 +3976,12 @@ class HudApp {
             x.last = q;
             const d = w.dial;
             x.c.uniform(x.ref, 'u_s', [d.start, d.sweep, q, d.red === undefined ? 2 : d.red]);
+        } else if (w.type === 'neonlamp') {
+            // the glow breathes: seconds in steps of 1 / "fps" (6), wrapping every 20 minutes
+            const q = Math.floor(now / 1000 * (w.fps || 6)) / (w.fps || 6) % 1200;
+            if (!force && q === x.last) return;
+            x.last = q;
+            x.c.uniform(x.ref, 'u_t', [q]);
         } else if (w.type === 'radar') {
             const rpm = this._raw('rpm'), pw = this._raw('powerPct');
             const v = Math.round(Math.min(1, Math.max(0, isNum(rpm) ? rpm / (w.rpmMax || 10000) : 0)) * 400) / 400, ld = Math.round(Math.min(1, Math.max(0, isNum(pw) ? pw / 100 : 0)) * 100) / 100;

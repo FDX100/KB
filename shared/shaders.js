@@ -4010,12 +4010,13 @@ void main() {
 }`;
 const NEONLAMP = `// A neon line drawing (GLSL ES 1.00): chains of vertices (u_v: x, y, width, brightness; a width at or under 0 starts a new chain; a negative brightness is amber)
 // drawn as lines with a core and a soft glow, up to 4 rings (u_r: centre x, y, radius, width (100 and over: a hexagon), u_b: their brightness), and a dark glossy
-// filled body (u_f: up to 8 corners, count in u_n.w) with a faint green haze: the BMW headlamps of the Radar theme. Straight alpha out.
+// filled body (u_f: up to 8 corners, count in u_n.w) with a faint green haze; the glow breathes, dimming and growing again (u_t: seconds): the BMW headlamps of the Radar theme. Straight alpha out.
 ` + FX_COMMON + `uniform vec4 u_v[28];
 uniform vec4 u_r[4];
 uniform vec4 u_b;
 uniform vec4 u_n;
 uniform vec4 u_f[8];
+uniform float u_t;
 float segd(vec2 p, vec2 a, vec2 b) {
     vec2 pa = p - a, ba = b - a;
     return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0));
@@ -4067,6 +4068,10 @@ void main() {
     float gloss = exp(-pow((p.y - cy + 8.0) / 9.0, 2.0)) * 0.05 + exp(-pow((p.y - cy - 4.0) / 24.0, 2.0)) * 0.06;
     float haze = exp(-pow(length((p - u_r[0].xy) / vec2(2.2, 1.0)) / 34.0, 2.0)) * u_n.z;
     float bodyA = inside * (0.30 + gloss + haze * 0.45) + (1.0 - inside) * haze * 0.2;
+    float br_ = 0.5 + 0.5 * sin(u_t * 1.6 + u_r[0].x * 0.013);
+    float breathe = 0.25 + 0.95 * br_ * br_ * (3.0 - 2.0 * br_);
+    glow *= breathe;
+    core *= 0.82 + 0.18 * br_;
     vec2 ed = min(p, u_size - p);
     glow *= smoothstep(0.0, 26.0, min(ed.x, ed.y));
     float a = clamp(core + glow + bodyA, 0.0, 1.0);
