@@ -57,8 +57,12 @@ def dial(i, cx, cy, R, signal, mn, mx, band, minors, every, red, conn):
             'dial': {'center': [cx, cy], 'radius': R, 'start': START, 'sweep': SWEEP, 'band': band, 'minors': minors, 'majorEvery': every, 'red': red, 'age': 1}}
 
 
-R = 350
-LC, RC = (X(398), Y(790)), (X(1203), Y(790))
+R = 295                                    # the whole dial (with its bezel) stands inside the 720 px high screen
+K = R / 350.0
+LC, RC = (360, 720 - R * 1.075 - 6), (1560, 720 - R * 1.075 - 6)
+
+
+def DY(py): return (Y(py) - Y(790)) * K        # a photo y, as the distance below the dial's centre
 W.append(dial('rev_dial', LC[0], LC[1], R, 'rpm', 0, 8000, [0.50, 0.60, 0.545], 16, 2, 0.8125, 1))
 W.append(dial('spd_dial', RC[0], RC[1], R, 'speed', 0, {'metric': 240, 'us': 160}, [0.50, 0.60, 0.545], 24, 2, 2, 2))
 # ---- the numbers along the arc, turned with it
@@ -81,10 +85,10 @@ for k in range(9):
 # ---- inside the dials
 for c, name, big, unit, sub in ((LC, 'ENGINE', '{{rpmH}}', 'RPM', 'X100'), (RC, 'SPEED', '{{speed}}', '{{u:speedKph}}', None)):
     n = 'rev' if c is LC else 'spd'
-    W.append(text(n + '_name', c[0], Y(727), 220, 'cr_mid', name, INK, 'center'))
-    W.append(text(n + '_big', c[0], Y(812), 260, 'cr_big', big, INK_D, 'center'))
-    W.append(text(n + '_unit', c[0], Y(901), 160, 'cr_mid', unit, INK, 'center'))
-    if sub: W.append(text(n + '_sub', c[0], Y(921), 100, 'cr_lab', sub, INK, 'center'))
+    W.append(text(n + '_name', c[0], c[1] + DY(727), 220, 'cr_mid', name, INK, 'center'))
+    W.append(text(n + '_big', c[0], c[1] + DY(812), 260, 'cr_big', big, INK_D, 'center'))
+    W.append(text(n + '_unit', c[0], c[1] + DY(901), 160, 'cr_mid', unit, INK, 'center'))
+    if sub: W.append(text(n + '_sub', c[0], c[1] + DY(921), 100, 'cr_lab', sub, INK, 'center'))
 # ---- the two small gauges at the top: coolant (left), fuel (right)
 MR = 100
 for i, cx, sig, mn, mx, st, sw, red in (('temp', X(720), 'coolant', 50, 130, 170, -160, 0.82), ('fuel', X(870), 'fuel', 0, 1, 190, 160, 2)):
