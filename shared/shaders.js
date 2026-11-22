@@ -3929,4 +3929,116 @@ void main() {
     gl_FragColor = vec4(col, a);
 }`;
 
-module.exports = { creamdial: CREAMDIAL, dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };
+// ---- the Radar theme (layouts/radar.json): a green radar-sweep rev gauge, a neon arc, neon headlamps
+const RADAR = `// A radar-sweep rev gauge (GLSL ES 1.00): a white ring from 0 to 7 (x1000 rpm, 29 degrees a thousand, the 0 at the lower left), a grey band inside it, a dark
+// disc with a green sweep that runs clockwise from the needle back round to the 0, a halftone of dots just behind the needle, the thin white needle, and
+// beyond the 7 a short arc with a green fill (the load). u_c: centre x, y, ring radius. u_s: the revs 0..1 (of 10 000), the load 0..1. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_c;
+uniform vec4 u_s;
+vec4 g_acc;
+void lay(vec3 col, float a) {
+    a = clamp(a, 0.0, 1.0);
+    g_acc.rgb = col * a + g_acc.rgb * (1.0 - a);
+    g_acc.a = a + g_acc.a * (1.0 - a);
+}
+void main() {
+    vec2 px = v_uv * u_size;
+    vec2 p = px - u_c.xy;
+    float R = u_c.z;
+    float r = length(p);
+    float u = r / R;
+    float aa = 1.0 / R;
+    float ang = degrees(atan(p.x, -p.y));
+    float rel = mod(ang + 145.0 + 720.0, 360.0);
+    float f = rel / 290.0;
+    float v = u_s.x;
+    float th = -145.0 + 290.0 * v;
+    g_acc = vec4(0.0);
+    lay(vec3(0.02, 0.03, 0.028), (1.0 - smoothstep(0.66 - aa, 0.66, u)) * 0.96);
+    float inF = step(f, 0.735);
+    float band = smoothstep(0.69 - aa, 0.69, u) * (1.0 - smoothstep(0.87 - aa, 0.87, u)) * inF;
+    lay(vec3(0.27, 0.30, 0.29) * (1.0 - 0.55 * f / 0.735), band * (0.95 - 0.35 * f));
+    float lit = band * step(f, v) * 0.22;
+    lay(vec3(0.35, 0.8, 0.45), lit);
+    float d = mod(ang - th + 720.0, 360.0);
+    float span = 360.0 - 290.0 * v;
+    float t = clamp(d / max(span, 1.0), 0.0, 1.0);
+    float inD = (1.0 - smoothstep(0.66 - aa, 0.66, u)) * step(d, span);
+    vec3 gc = mix(vec3(0.46, 0.80, 0.49), vec3(0.06, 0.17, 0.09), pow(t, 0.85)) * (0.74 + 0.26 * smoothstep(0.0, 0.66, u));
+    lay(gc, inD * (0.92 - 0.1 * t));
+    float e = mod(th - ang + 720.0, 360.0);
+    float dotg = length(fract(px / 8.0) - 0.5) * 8.0;
+    float dots = (1.0 - smoothstep(1.0, 1.9, dotg)) * step(e, 120.0) * (1.0 - e / 120.0) * smoothstep(0.18, 0.62, u) * (1.0 - smoothstep(0.62, 0.66, u));
+    lay(vec3(0.62, 0.85, 0.66), dots * 0.55);
+    vec2 nd = vec2(sin(radians(th)), -cos(radians(th)));
+    float along = dot(p, nd);
+    float perp = abs(p.x * nd.y * -1.0 + p.y * nd.x);
+    float nl = (1.0 - smoothstep(0.4, 1.3, perp)) * step(0.04 * R, along) * step(along, 1.05 * R);
+    lay(vec3(0.95, 1.0, 0.96), nl * 0.95);
+    float ring = clamp(2.6 + 0.5 - abs(r - R), 0.0, 1.0) * step(f, 0.735) * smoothstep(0.0, 0.01, f) ;
+    lay(vec3(0.98), ring);
+    float r2 = R * 1.03;
+    float f2 = (f - 0.765) / 0.22;
+    float inT = step(0.0, f2) * step(f2, 1.0);
+    float tw = clamp(5.0 + 0.5 - abs(r - r2), 0.0, 1.0) * inT;
+    lay(vec3(0.20, 0.23, 0.22), tw * 0.9);
+    float fill = step(f2, u_s.y) * inT;
+    vec3 gcol = mix(vec3(0.20, 0.95, 0.42), vec3(0.05, 0.45, 0.2), clamp(f2 / max(u_s.y, 0.05), 0.0, 1.0));
+    lay(gcol, clamp(5.0 + 0.5 - abs(r - r2), 0.0, 1.0) * fill);
+    float glow = exp(-pow((r - r2) / 9.0, 2.0)) * fill * 0.25;
+    lay(vec3(0.2, 0.95, 0.45), glow);
+    gl_FragColor = vec4(g_acc.rgb / max(g_acc.a, 0.001), g_acc.a);
+}`;
+const NEONARC = `// A big thin neon arc across the top (GLSL ES 1.00): the upper half of an ellipse with a glowing core and a halo, brightest in the middle and fading out to
+// both ends. u_e: centre x, y (layer px), semi axes a, b. u_f: half width of the part that shows (px), the core strength. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_e;
+uniform vec4 u_f;
+void main() {
+    vec2 p = v_uv * u_size - u_e.xy;
+    vec2 q = p / u_e.zw;
+    float k0 = length(q);
+    float k1 = length(q / u_e.zw);
+    float d = k0 * (k0 - 1.0) / max(k1, 0.0001);
+    float t = clamp(abs(p.x) / u_f.x, 0.0, 1.0);
+    float body = pow(1.0 - t * t, 1.4) * step(p.y, 0.0);
+    float core = exp(-d * d / 1.1) * u_f.y;
+    float halo = exp(-abs(d) / 7.0) * 0.20 + exp(-abs(d) / 26.0) * 0.07;
+    float top = exp(-pow(p.x / 260.0, 2.0));
+    float a = clamp((core + halo) * body * (0.35 + 0.65 * top), 0.0, 1.0);
+    vec3 col = mix(vec3(0.38, 0.85, 0.36), vec3(0.78, 1.0, 0.66), clamp(core * top, 0.0, 1.0));
+    gl_FragColor = vec4(col, a);
+}`;
+const NEONLAMP = `// A neon line drawing (GLSL ES 1.00): up to 16 line segments (u_s: x0, y0, x1, y1 in layer px, u_w: width, brightness) and one ring (u_r: centre x, y,
+// radius, ring width), each with a core and a soft glow; the headlamps of the Radar theme. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_s[16];
+uniform vec4 u_w[16];
+uniform vec4 u_r;
+uniform vec4 u_n;
+float segd(vec2 p, vec4 s) {
+    vec2 a = s.xy, b = s.zw;
+    vec2 pa = p - a, ba = b - a;
+    return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0));
+}
+void main() {
+    vec2 p = v_uv * u_size;
+    float core = 0.0;
+    float glow = 0.0;
+    for (int i = 0; i < 16; i++) {
+        if (float(i) >= u_n.x) break;
+        float d = segd(p, u_s[i]);
+        float w = u_w[i].x;
+        float b = u_w[i].y;
+        core = max(core, clamp(w * 0.5 + 0.5 - d, 0.0, 1.0) * b);
+        glow = max(glow, exp(-d / 7.0) * 0.55 * b);
+    }
+    float dr = abs(length(p - u_r.xy) - u_r.z);
+    core = max(core, clamp(u_r.w * 0.5 + 0.5 - dr, 0.0, 1.0));
+    glow = max(glow, exp(-dr / 7.0) * 0.55);
+    float dc = length(p - u_r.xy);
+    core = max(core, (1.0 - smoothstep(u_r.z * 0.30, u_r.z * 0.45, dc)) * 0.95);
+    float a = clamp(core + glow, 0.0, 1.0);
+    vec3 col = mix(vec3(0.30, 0.92, 0.42), vec3(0.88, 1.0, 0.88), clamp(core - 0.2, 0.0, 1.0));
+    gl_FragColor = vec4(col, a);
+}`;
+
+module.exports = { radar: RADAR, neonarc: NEONARC, neonlamp: NEONLAMP, creamdial: CREAMDIAL, dewdrops: DEWDROPS, slant: SLANT, stars: STARS, ringfx: RINGFX, beam: BEAM, rails: RAILS, shiftbar: SHIFTBAR, arc: ARC, revbar: REVBAR, lights: LIGHTS, fill: FILL, box: BOX, grid: GRID, segbar: SEGBAR, mdash: MDASH, mtach: MTACH, sdash: SDASH, boxes: BOXES, atext: ATEXT, meter: METER, gmeter: GMETER, revarc: REVARC, tiles: TILES, ribbon: RIBBON, deco: DECO, mview: MVIEW, aview: ALPINA, cmap: CMAP, cview: CVIEW, eside: ESIDE, wdial: WDIAL, wgauge: WGAUGE, gdial: GDIAL, segarc: SEGARC, artmask: ARTMASK, gaugemask: GAUGEMASK, pneedle: PNEEDLE, gpoly: GPOLY, csky: CSKY, neon: NEON, mrain: MRAIN, aclock: ACLOCK, mband: MBAND, adial: ADIAL, apanel: APANEL, efloor: EFLOOR, lstrip: LSTRIP, lgauge: LGAUGE, vdash: VDASH };

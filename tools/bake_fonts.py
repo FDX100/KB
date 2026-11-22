@@ -149,6 +149,11 @@ CLUSTER_FONTS = [
     ('cr_gear', 'LiberationSerif-Regular.ttf', 38, 'PRND', 0),
     ('cr_lab', 'LiberationSerif-Bold.ttf', 17, UPPER + DIGITS + ' ', 0),
     ('cr_lcd', 'DSEG7Classic-Bold.ttf', 40, DIGITS + '.-', 0),
+    # Radar (after the green radar cluster): light slanted Outfit
+    ('rd_big', 'Outfit[wght].ttf', 92, DIGITS, 0, 'ExtraLight', None, '', 1.0, 0.22),
+    ('rd_num', 'Outfit[wght].ttf', 31, DIGITS, 0, 'Regular', None, '', 1.0, 0.22),
+    ('rd_small', 'Outfit[wght].ttf', 19, UPPER + LOWER + DIGITS + ' .:/', 0, 'Regular', None, '', 1.0, 0.22),
+    ('rd_unit', 'Outfit[wght].ttf', 22, UPPER + '/ ', 0, 'Regular', None, '', 1.0, 0.22),
     # Night: a slim clock for the middle
     ('n_time', 'Outfit[wght].ttf', 150, DIGITS + ':', 0, 'ExtraLight'),
     # Eco: slim Outfit numerals and labels (the i8-style dials)
@@ -217,12 +222,13 @@ PAD = 2
 ATLAS_W = 1024
 
 
-def bake(out, name, file, size, chars, stroke=0, weight=None, subs=None, tuck='', xscale=1.0):
+def bake(out, name, file, size, chars, stroke=0, weight=None, subs=None, tuck='', xscale=1.0, shear=0.0):
     """stroke: px of extra weight round every glyph (Michroma has one weight). weight: a named instance of a
     variable font (Orbitron: Regular .. Black), for the M theme's squared BMW-style gear, speed and numbers.
     subs: {char: glyph drawn for it} (Orbitron's zero is slashed; the M8's is plain, so its O stands in).
     tuck: characters added to a font after layouts were built on its cell height (° on value / y_val, Nov 7 2026):
     they don't count towards the cell, and one that rises above it is drawn lower so its top meets the cell's.
+    shear: every glyph slanted to the right by this much (0.2 = about 11 degrees), a made-up italic (the Radar theme).
     xscale: every glyph squeezed (< 1) or widened sideways after drawing (the Concept theme's narrow numbers)."""
     font = ImageFont.truetype(os.path.join(SRC, file), size)
     if weight: font.set_variation_by_name(weight)
@@ -243,9 +249,12 @@ def bake(out, name, file, size, chars, stroke=0, weight=None, subs=None, tuck=''
             cells.append((c, None, 0, round(adv if adv else size * 0.25)))
             continue
         l, _, r, _ = boxes[c]
-        w = r - l + 2 * PAD
+        w = r - l + 2 * PAD + int(abs(shear) * height * 0.8)
         img = Image.new('L', (w, height), 0)
         ImageDraw.Draw(img).text((PAD - l, PAD - top + drop.get(c, 0)), glyph(c), font=font, fill=255, anchor='ls', stroke_width=stroke, stroke_fill=255)
+        if shear:
+            y0 = PAD - top
+            img = img.transform(img.size, Image.AFFINE, (1, shear, -shear * y0, 0, 1, 0), Image.BICUBIC)
         if xscale != 1.0:
             img = img.resize((max(1, round(img.width * xscale)), height), Image.LANCZOS)
         shift = (tab - adv) / 2 if c in DIGITS else 0

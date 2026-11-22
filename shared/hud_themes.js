@@ -241,6 +241,16 @@ const THEMES = {
         night: { fg: [255, 178, 84, 255], big: [255, 196, 110, 255], dim: [150, 110, 60, 255] },
         ink: [10, 10, 10, 255], accent: [200, 190, 130, 255], well: [22, 22, 20, 255],
     },
+    // Radar (layout radar.json): black, white and a radar green.
+    radar: {
+        name: 'Radar',
+        fg: [244, 247, 244, 255], dim: [120, 136, 124, 255], track: [50, 58, 54, 255], arc: [98, 224, 120, 255],
+        glow: 0, stripe: false,
+        bar: { low: [98, 224, 120], mid: [220, 220, 110], high: [236, 70, 56], midAt: 'shift' },
+        rev: { from: [98, 224, 120], to: [236, 70, 56] },
+        bg: [0, 0, 0, 255], panel: [8, 12, 10, 255], line: [80, 120, 92, 255], head: [98, 224, 120, 255],
+        ink: [6, 10, 8, 255], accent: [98, 224, 120, 255], well: [0, 0, 0, 255],
+    },
 };
 // every theme: the shift-point red, used by "hot" (the gear and SHIFT at the shift point, the rev bar past it)
 Object.keys(THEMES).forEach((k) => { THEMES[k].hot = [255, 42, 42, 255]; });

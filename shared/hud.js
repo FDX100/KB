@@ -100,6 +100,9 @@
  *             "blocks", "face" (omit: no face), "needle" { length, from, to, signal, min, max }, "pivotRadius"
  *   segarc    effect layer; the Arc Digital theme's rev arc of slats (shaders.js SEGARC): "center", "radii", "tick", "zones", "angles", lit by the revs
  *   creamdial effect layer; a cream-faced dial with a ticked band, a black fill and a red zone (shaders.js CREAMDIAL, the Cream theme): "dial" { center, radius, start, sweep, band [in, out, fill out], minors, majorEvery, red, shine (1) }, "signal", "min", "max" ({ metric, us }); the face turns dim amber at night (nightDim Auto, after sunset)
+ *   radar     effect layer; a radar-sweep rev gauge (shaders.js RADAR, the Radar theme): "radar" { center, radius }, "rpmMax" (10000); a load arc (powerPct) beyond the 7
+ *   neonarc   effect layer; a big thin neon ellipse arc (NEONARC): "ellipse" { center, axes, half, core }
+ *   neonlamp  effect layer; neon line drawings (NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness] x16], "ring" [x, y, radius, width]
  *   dewdrops  effect layer; rings of water drops round the speed (shaders.js DEWDROPS, the Dewdrop theme): "drops" { center, rings }, "rpmMax" (8000), "fps" (8: how often the drops step through their birth and fade)
  *   slant     effect layer; a slanted glass panel right of a line (SLANT): "line" [x0, y0, x1, y1], "fill" [r, g, b, strength], "edge" [strength, width]
  *   stars     effect layer; a night sky (shaders.js STARS, the Starlight theme): "sky" [y where it thins, y where it is gone, y of the bright top edge], "fps" (6: how often the twinkle steps)
@@ -268,7 +271,7 @@
  *
  * Text tokens: {{speed}} {{u:speed}} {{oil}} {{coolant}} {{boost}} {{u:boost}} {{rpm}}
  * {{gear}} (P / R / N, D3 / S3 / M3 by the shifter programme, or just 3 when the selector position is unknown), {{gearnum}} (3, or P / R / N)
- * {{spd:<i>}} (speed scale label i of SPEED_SCALE: 0..200 mph, 0..320 km/h) {{range}} {{u:distLc}} (mi, km) {{u:dist}} (MI, KM) {{ambient}} (outside, signed: +75) {{u:speedLc}} (mph, km/h) {{speed2}} {{u:speed2Lc}} {{u:speed2}} (the speed in the other unit) {{rpmK}} (the revs in whole thousands) {{rpmH}} (in hundreds) {{mediaTitle}} {{mediaArtist}} {{mediaElapsed}} {{mediaLeft}} (now playing, HmiMediaState; empty without) {{ampmLc}} (am, pm) {{torque}} {{u:torque}} (lb-ft, Nm) {{torquePct}} {{powerPct}} (% of config.engine's peak) {{boostHi}} {{boostMid}}
+ * {{spd:<i>}} (speed scale label i of SPEED_SCALE: 0..200 mph, 0..320 km/h) {{range}} {{u:distLc}} (mi, km) {{u:dist}} (MI, KM) {{ambient}} (outside, signed: +75) {{u:speedLc}} (mph, km/h) {{speed2}} {{u:speed2Lc}} {{u:speed2}} (the speed in the other unit) {{gearN}} (P R N or the gear number) {{rpmK}} (the revs in whole thousands) {{rpmH}} (in hundreds) {{mediaTitle}} {{mediaArtist}} {{mediaElapsed}} {{mediaLeft}} (now playing, HmiMediaState; empty without) {{ampmLc}} (am, pm) {{torque}} {{u:torque}} (lb-ft, Nm) {{torquePct}} {{powerPct}} (% of config.engine's peak) {{boostHi}} {{boostMid}}
  * (gauge labels for 1.4 / 0.7 bar in the display unit) {{stage}} (P R N, D / S / M by the shifter programme) {{gearInD}} (gear number while in D) {{mode}} (COMFORT, SPORT, SPORT PLUS, SPORT INDIVIDUAL, ECO PRO, ...)
  * {{temp:<deg C>}} (that temperature in the display unit, °F rounded to 10, for gauge labels) {{setup:engine|chassis|steering|gearbox}} (what that part is set to in the drive mode now)
  * {{time}} {{ampm}} {{u:temp}} (°F / °C) {{gLat}} {{gLong}} (g, 2 decimals) {{gSide}} ("0.42 L", "0.42 R")
@@ -2033,6 +2036,7 @@ class HudApp {
             case 'gBest': return this.gBest.total > 0 ? this.gBest.total.toFixed(2) : '--';
             case 'gMax': return this._gRange(null).toFixed(1);
             case 'rpm': case 'rpm10': return isNum(this.rpmShown) ? String(this.rpmShown) : (tok === 'rpm' ? '--' : '----');
+            case 'gearN': { const d = this.car.data(); if (d.stage === 'P' || d.stage === 'R' || d.stage === 'N') return d.stage; return isNum(d.gear) && d.gear > 0 ? String(d.gear) : (d.stage === 'D' ? 'D' : ''); }      // the gear alone: P R N or the number
             case 'rpmH': return isNum(this.rpmShown) ? String(Math.min(99, Math.round(this.rpmShown / 100))) : '--';       // the revs in hundreds (the Cream theme's dial)
             case 'rpmK': return isNum(this.rpmShown) ? String(Math.min(9, Math.round(this.rpmShown / 1000))) : '-';       // the revs in thousands, whole (the Dewdrop theme)
             case 'revK': return isNum(this.rpmShown) ? (this.rpmShown / 1000).toFixed(1) : '--';       // the revs in thousands, one decimal (the Live Cockpit's 0.0)
@@ -2890,6 +2894,29 @@ class HudApp {
             c.uniform(ref, 'u_b', [d.band[0], d.band[1], d.band[2], d.minors]);
             c.uniform(ref, 'u_m', [d.majorEvery || 2, d.hot === undefined ? 0 : d.hot, 0, 0]);
             c.uniform(ref, 'u_n', [this.nightOn ? 1 : 0, d.shine === undefined ? 1 : d.shine, 0, 0]);       // night (nightDim on Auto, after sunset): a dimmer amber face
+        } else if (w.type === 'radar') {
+            // the Radar theme's rev gauge (shaders.js RADAR): "radar" { center [x, y] (target px), radius }, the revs of "rpmMax" (10000) and the load (powerPct) are the live values
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_c', [w.radar.center[0] - w.x, w.radar.center[1] - w.y, w.radar.radius, 0]);
+            c.uniform(ref, 'u_s', [0, 0, 0, 0]);
+        } else if (w.type === 'neonarc') {
+            // a big neon arc (shaders.js NEONARC): "ellipse" { center [x, y] (target px), axes [a, b], half (px, the part that shows), core }
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            c.uniform(ref, 'u_e', [w.ellipse.center[0] - w.x, w.ellipse.center[1] - w.y, w.ellipse.axes[0], w.ellipse.axes[1]]);
+            c.uniform(ref, 'u_f', [w.ellipse.half, w.ellipse.core === undefined ? 1 : w.ellipse.core, 0, 0]);
+        } else if (w.type === 'neonlamp') {
+            // neon lines (shaders.js NEONLAMP): "segs" [[x0, y0, x1, y1, width, brightness], ...] (at most 16, target px) and "ring" [x, y, radius, width]
+            c.uniform(ref, 'u_size', [w.w, w.h]);
+            const sg = [], wd = [];
+            for (let i = 0; i < 16; i++) {
+                const g = w.segs[i];
+                sg.push(g ? [g[0] - w.x, g[1] - w.y, g[2] - w.x, g[3] - w.y] : [0, 0, 0, 0]);
+                wd.push(g ? [g[4], g[5], 0, 0] : [0, 0, 0, 0]);
+            }
+            c.uniform(ref, 'u_s', sg.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
+            c.uniform(ref, 'u_w', wd.reduce((a, r) => a.concat(r), []), { type: 'vec4' });
+            c.uniform(ref, 'u_r', [w.ring[0] - w.x, w.ring[1] - w.y, w.ring[2], w.ring[3]]);
+            c.uniform(ref, 'u_n', [Math.min(16, w.segs.length), 0, 0, 0]);
         } else if (w.type === 'dewdrops') {
             // the Dewdrop theme's rings of water drops (shaders.js DEWDROPS): "drops" { center [x, y] (target px), rings [[outer radius, inner radius, drops per ring, biggest drop radius], [rings (at most 6), seconds a drop takes to travel, wobble, 1: outwards from the speed (0: inwards)], [0..], [0..]] }
             c.uniform(ref, 'u_size', [w.w, w.h]);
@@ -3939,6 +3966,13 @@ class HudApp {
             x.last = q;
             const d = w.dial;
             x.c.uniform(x.ref, 'u_s', [d.start, d.sweep, q, d.red === undefined ? 2 : d.red]);
+        } else if (w.type === 'radar') {
+            const rpm = this._raw('rpm'), pw = this._raw('powerPct');
+            const v = Math.round(Math.min(1, Math.max(0, isNum(rpm) ? rpm / (w.rpmMax || 10000) : 0)) * 400) / 400, ld = Math.round(Math.min(1, Math.max(0, isNum(pw) ? pw / 100 : 0)) * 100) / 100;
+            const key = v + '|' + ld;
+            if (!force && key === x.last) return;
+            x.last = key;
+            x.c.uniform(x.ref, 'u_s', [v, ld, 0, 0]);
         } else if (w.type === 'dewdrops') {
             const rpm = this._raw('rpm'), v = Math.round(Math.min(1, Math.max(0, isNum(rpm) ? rpm / (w.rpmMax || 8000) : 0)) * 100) / 100;
             const q = Math.floor(now / 1000 * (w.fps || 8)) / (w.fps || 8) % 2520;
