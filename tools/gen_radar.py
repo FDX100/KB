@@ -49,7 +49,7 @@ W.append(text('rpm_l', GC[0], GC[1] + 203, 140, 'rd_small', 'RPM', WHITE, 'cente
 # ---- the gear (left) and the speed (right), with the thin lines that join them to the gauge
 W.append(text('gear', X(275), Y(455), 130, 'rd_big', '{{gearN}}', WHITE, 'center'))
 W.append(text('speed', X(775), Y(455), 300, 'rd_big', '{{speed}}', WHITE, 'center'))
-W.append(text('speed_u', X(850) - 14, Y(470) + 4, 120, 'rd_unit', '{{u:speed}}', DIM, 'left'))
+W.append(text('speed_u', X(850) - 14, Y(470) + 4, 90, 'rd_unit', '{{u:speed}}', DIM, 'left'))
 W.append({'id': 'line_l', 'type': 'fill', 'class': 'content', 'z': 3, 'x': round(X(268)), 'y': round(Y(412)), 'w': round(X(328) - X(268)), 'h': 1, 'color': [60, 150, 90, 255]})
 W.append({'id': 'line_r', 'type': 'fill', 'class': 'content', 'z': 3, 'x': round(X(696)), 'y': round(Y(412)), 'w': round(X(752) - X(696)), 'h': 1, 'color': [60, 150, 90, 255]})
 # ---- the small print under the arc
@@ -59,40 +59,56 @@ W.append(text('clock', X(873), Y(263), 220, 'rd_small', '{{time}} {{ampm}}', DIM
 def Z(zx, zy): return (50 + zx / 5.0, 360 + zy / 5.0)
 
 
-def poly(zs, w, b):
-    pts = [Z(*q) for q in zs]
-    return [(a[0], a[1], c[0], c[1], w, b) for a, c in zip(pts[:-1], pts[1:])]
+def smooth(zs, n):
+    """A Catmull-Rom curve through the points, n steps a span (zoomed crop coordinates)."""
+    out = []
+    for i in range(len(zs) - 1):
+        p0, p1, p2, p3 = zs[max(0, i - 1)], zs[i], zs[i + 1], zs[min(len(zs) - 1, i + 2)]
+        for k in range(n):
+            t = k / n
+            out.append(tuple(0.5 * ((2 * p1[j]) + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t * t + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t ** 3) for j in (0, 1)))
+    out.append(zs[-1])
+    return out
 
 
-UPPER = (poly([(88, 125), (95, 200), (118, 262), (200, 277), (400, 283), (620, 282), (740, 272), (800, 238)], 3.0, 1.0)      # the daytime light along the lens
-         + poly([(65, 110), (450, 140), (850, 255)], 1.1, 0.35)                                                          # the housing, top edge
-         + poly([(70, 292), (450, 302), (845, 262)], 1.1, 0.35)                                                          # the housing, bottom edge
-         + poly([(440, 180), (462, 225), (500, 245), (650, 248), (682, 215)], 2.4, 0.9)                                    # the U in the lens
-         + [(*Z(82, 160), *Z(90, 232), 3.0, -0.95)])                                                                       # the turn signal, amber
-UPPER_RINGS = [(*Z(368, 200), 9.0, 3.0, 1.0), (*Z(368, 200), 5.6, 1.6, 0.8), (*Z(205, 190), 7.2, 1.2, 0.35), (*Z(560, 190), 6.0, 1.2, 0.35)]
-LOWER = (poly([(140, 405), (150, 480), (175, 580), (230, 650), (310, 695), (410, 725)], 3.8, 1.0)                           # the light bar in the bumper
-         + poly([(125, 400), (640, 470), (720, 540)], 1.1, 0.3) + poly([(410, 728), (640, 640)], 1.1, 0.3))
-LS = 1.4
+DRL = smooth([(88, 125), (95, 200), (118, 262), (200, 277), (400, 283), (620, 282), (740, 272), (800, 238)], 2)                 # 15 vertices
+U_LIGHT = smooth([(440, 180), (462, 225), (500, 245), (650, 248), (682, 215)], 2)                                                  # 9 vertices
+TOP_EDGE = smooth([(65, 110), (450, 140), (850, 255)], 2)                                                                          # 5 vertices
+BOT_EDGE = smooth([(70, 292), (450, 302), (845, 262)], 2)                                                                          # 5 vertices
+BODY = [(65, 110), (380, 122), (700, 175), (850, 255), (780, 285), (420, 298), (80, 295), (62, 200)]
+BAR = smooth([(140, 405), (150, 480), (175, 580), (230, 650), (310, 695), (410, 725)], 3)                                          # 16 vertices
+LOW_OUT1 = [(125, 400), (640, 470), (720, 540)]
+LOW_OUT2 = [(410, 728), (640, 640)]
+RINGS = [(368, 200, 9.4, 103.6, 1.0), (368, 200, 5.4, 2.0, 0.9), (205, 190, 7.2, 1.2, 0.35), (560, 190, 6.0, 1.2, 0.35)]
+LS = 1.75
 for side in ('l', 'r'):
-    cx = X(140) - 50 if side == 'l' else 1920 - X(140) + 50
+    cx = X(140) - 60 if side == 'l' else 1920 - X(140) + 60
     cy = Y(440)
 
-    def pt(px, py):
+    def pt(zx, zy):
+        px, py = Z(zx, zy)
         qx = (px - 140) if side == 'l' else -(px - 140)
-        return round(cx + qx * LS, 1), round(cy + (py - 440) * LS, 1)
-    for nm, items, rings, y0, h, haze in (('up', UPPER, UPPER_RINGS, 340, 110, 0.9), ('low', LOWER, [], 436, 140, 0)):
-        segs = []
-        for (ax, ay, bx, by, wd, br) in items:
-            (a, b), (c, d) = pt(ax, ay), pt(bx, by)
-            segs.append([a, b, c, d, round(wd * 1.25, 1), br])
-        rg = [list(pt(r[0], r[1])) + [round(r[2] * LS, 1), r[3], r[4]] for r in rings]
-        ly0 = Y(y0 if nm == 'up' else 440 + (y0 - 436) )  # placeholder, replaced below
-        ys = [v for sg in segs for v in (sg[1], sg[3])] + [r[1] for r in rg]
-        xs = [v for sg in segs for v in (sg[0], sg[2])] + [r[0] for r in rg]
-        pad = 26
-        bx0, by0 = round(min(xs) - pad), round(min(ys) - pad - 12)
-        bw, bh = round(max(xs) - min(xs) + 2 * pad), round(max(ys) - min(ys) + 2 * pad + 24)
-        W.append({'id': 'lamp_%s_%s' % (nm, side), 'type': 'neonlamp', 'class': 'content', 'z': 1, 'x': bx0, 'y': by0, 'w': bw, 'h': bh, 'conn': 3, 'segs': segs, 'rings': rg, 'haze': haze})
+        return cx + qx * LS, cy + (py - 440) * LS
+
+    def chain(zs, w, b):
+        return [[round(pt(*q)[0], 1), round(pt(*q)[1], 1), round(w * 1.25, 1), b] for q in zs]
+
+    def layer(nm, z, chains, rings, fill, haze):
+        pts = [(v[0], v[1]) for ch in chains for v in ch] + [(r[0], r[1]) for r in rings] + list(fill)
+        xs, ys = [q[0] for q in pts], [q[1] for q in pts]
+        pad = 30
+        x0, y0 = round(min(xs) - pad), round(min(ys) - pad)
+        d = {'id': 'lamp_%s_%s' % (nm, side), 'type': 'neonlamp', 'class': 'content', 'z': z, 'x': x0, 'y': y0, 'w': round(max(xs) - min(xs) + 2 * pad), 'h': round(max(ys) - min(ys) + 2 * pad),
+             'conn': 3, 'chains': chains, 'rings': rings, 'fill': [list(q) for q in fill], 'haze': haze}
+        return d
+    rg = []
+    for (zx, zy, r, wd, br) in RINGS:
+        x, y = pt(zx, zy)
+        rg.append([round(x, 1), round(y, 1), round(r * LS, 1), wd, br])
+    body = [[round(pt(*q)[0], 1), round(pt(*q)[1], 1)] for q in BODY]
+    W.append(layer('body', 1, [chain(U_LIGHT, 3.4, 1.0)], rg, body, 0.9))
+    W.append(layer('drl', 2, [chain(DRL, 4.2, 1.0), chain([(82, 160), (90, 232)], 4.0, -0.95), chain(TOP_EDGE, 1.6, 0.5), chain(BOT_EDGE, 1.6, 0.5)], [], [], 0))
+    W.append(layer('low', 1, [chain(BAR, 5.2, 1.0), chain(LOW_OUT1, 1.1, 0.3), chain(LOW_OUT2, 1.1, 0.3)], [], [], 0))
 for w in json.load(open(STRIP))['widgets']:
     if str(w['id']).startswith('strip_cover'):
         W.append(w)

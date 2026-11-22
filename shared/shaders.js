@@ -4008,45 +4008,69 @@ void main() {
     vec3 col = mix(vec3(0.38, 0.85, 0.36), vec3(0.78, 1.0, 0.66), clamp(core * top, 0.0, 1.0));
     gl_FragColor = vec4(col, a);
 }`;
-const NEONLAMP = `// A neon line drawing (GLSL ES 1.00): up to 16 line segments (u_s: x0, y0, x1, y1 in layer px, u_w: width, brightness; a negative brightness is amber) and up to
-// 4 rings (u_r: centre x, y, radius, width, u_b: their brightness), each with a core and a soft glow, over a faint green haze of the lamp's body (u_n.z); the BMW
-// headlamps of the Radar theme. Straight alpha out.
-` + FX_COMMON + `uniform vec4 u_s[16];
-uniform vec4 u_w[16];
+const NEONLAMP = `// A neon line drawing (GLSL ES 1.00): chains of vertices (u_v: x, y, width, brightness; a width at or under 0 starts a new chain; a negative brightness is amber)
+// drawn as lines with a core and a soft glow, up to 4 rings (u_r: centre x, y, radius, width (100 and over: a hexagon), u_b: their brightness), and a dark glossy
+// filled body (u_f: up to 8 corners, count in u_n.w) with a faint green haze: the BMW headlamps of the Radar theme. Straight alpha out.
+` + FX_COMMON + `uniform vec4 u_v[28];
 uniform vec4 u_r[4];
 uniform vec4 u_b;
 uniform vec4 u_n;
-float segd(vec2 p, vec4 s) {
-    vec2 a = s.xy, b = s.zw;
+uniform vec4 u_f[8];
+float segd(vec2 p, vec2 a, vec2 b) {
     vec2 pa = p - a, ba = b - a;
     return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0));
+}
+float hexd(vec2 q) {
+    q = abs(q);
+    return max(q.x * 0.8660254 + q.y * 0.5, q.y);
 }
 void main() {
     vec2 p = v_uv * u_size;
     float core = 0.0;
     float glow = 0.0;
     float amber = 0.0;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 1; i < 28; i++) {
         if (float(i) >= u_n.x) break;
-        float d = segd(p, u_s[i]);
-        float w = u_w[i].x;
-        float b = abs(u_w[i].y);
-        float c = clamp(w * 0.5 + 0.5 - d, 0.0, 1.0) * b;
-        if (u_w[i].y < 0.0) amber = max(amber, c);
+        vec4 a = u_v[i - 1];
+        vec4 b = u_v[i];
+        if (b.z <= 0.0) continue;
+        float d = segd(p, a.xy, b.xy);
+        float w = b.z;
+        float br = abs(b.w);
+        float c = clamp(w * 0.5 + 0.5 - d, 0.0, 1.0) * br;
+        if (b.w < 0.0) amber = max(amber, c);
         core = max(core, c);
-        glow = max(glow, exp(-d / (3.0 + w * 0.9)) * 0.5 * b);
+        glow = max(glow, exp(-d / (3.4 + w * 1.1)) * 0.55 * br);
     }
     for (int j = 0; j < 4; j++) {
         if (float(j) >= u_n.y) break;
+        float wj = u_r[j].w;
         float dr = abs(length(p - u_r[j].xy) - u_r[j].z);
+        if (wj >= 100.0) { dr = abs(hexd(p - u_r[j].xy) - u_r[j].z); wj -= 100.0; }
         float bj = u_b[j];
-        core = max(core, clamp(u_r[j].w * 0.5 + 0.5 - dr, 0.0, 1.0) * bj);
-        glow = max(glow, exp(-dr / (3.0 + u_r[j].w)) * 0.5 * bj);
+        core = max(core, clamp(wj * 0.5 + 0.5 - dr, 0.0, 1.0) * bj);
+        glow = max(glow, exp(-dr / (3.0 + wj * 1.2)) * 0.5 * bj);
     }
-    float haze = exp(-pow(length((p - u_r[0].xy) / vec2(2.4, 1.0)) / 26.0, 2.0)) * u_n.z;
-    float a = clamp(core + glow + haze * 0.5, 0.0, 1.0);
-    vec3 green = mix(vec3(0.26, 0.86, 0.46), vec3(0.86, 1.0, 0.88), clamp(core - 0.25, 0.0, 1.0));
+    float inside = 0.0;
+    float edgeD = 1e5;
+    for (int k = 0; k < 8; k++) {
+        if (float(k) >= u_n.w) break;
+        vec2 a = u_f[k].xy;
+        vec2 b = (float(k) + 1.0 >= u_n.w) ? u_f[0].xy : u_f[k + 1].xy;
+        edgeD = min(edgeD, segd(p, a, b));
+        if (((a.y > p.y) != (b.y > p.y)) && (p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x)) inside = 1.0 - inside;
+    }
+    float body = inside * (1.0 - smoothstep(0.0, 1.5, 0.0)) * 1.0;
+    float cy = u_r[0].y;
+    float gloss = exp(-pow((p.y - cy + 8.0) / 9.0, 2.0)) * 0.05 + exp(-pow((p.y - cy - 4.0) / 24.0, 2.0)) * 0.06;
+    float haze = exp(-pow(length((p - u_r[0].xy) / vec2(2.2, 1.0)) / 34.0, 2.0)) * u_n.z;
+    float bodyA = inside * (0.30 + gloss + haze * 0.45) + (1.0 - inside) * haze * 0.2;
+    float a = clamp(core + glow + bodyA, 0.0, 1.0);
+    vec3 green = mix(vec3(0.26, 0.86, 0.46), vec3(0.88, 1.0, 0.90), clamp(core - 0.25, 0.0, 1.0));
+    vec3 bodyC = vec3(0.02, 0.16, 0.10);
     vec3 col = mix(green, vec3(1.0, 0.62, 0.12), clamp(amber * 1.6, 0.0, 1.0));
+    float lum = core + glow;
+    col = (col * lum + bodyC * bodyA) / max(lum + bodyA, 0.001);
     gl_FragColor = vec4(col, a);
 }`;
 

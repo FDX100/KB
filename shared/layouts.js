@@ -47,7 +47,7 @@ const TYPES = {
     creamdial: ['dial', 'signal'],
     radar: ['radar'],
     neonarc: ['ellipse'],
-    neonlamp: ['segs'],
+    neonlamp: ['chains'],
     slant: ['line'],
     gaugemask: ['art', 'art2', 'signal'],
     pneedle: ['signal', 'marks'],
